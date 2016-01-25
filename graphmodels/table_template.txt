@@ -1,0 +1,14 @@
+<table border="1" cellpadding="4" cellspacing="0" bordercolor="#000000">
+<tr bgcolor="#AAAAAA">
+{{#header}}
+<th align="center">{{{text}}}</th>
+{{/header}}
+</tr>
+{{#row}}
+<tr>
+{{#cell}}
+<td bgcolor={{{bgcolor}}}>{{{text}}}</td>
+{{/cell}}
+</tr>
+{{/row}}
+</table>

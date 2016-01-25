@@ -5,7 +5,6 @@ from copy import deepcopy
 import numpy as np
 import pandas as pd
 
-
 class Factor(object):
     def __init__(self, arguments, scope):
         self.arguments = list(arguments)
