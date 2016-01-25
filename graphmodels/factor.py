@@ -11,25 +11,50 @@ class Factor(object):
         self.arguments = list(arguments)
         self.scope = [name for name in arguments if name in scope]
 
-    def _pdf(self, *args):
+    def _pdf(self, args):
         raise NotImplementedError()
 
     def pdf(self, *args, **kwargs):
         assert len(args) <= 1
-
         arg_dict = args[0] if len(args) else {}
         arg_dict.update(kwargs)
-
         assert set(arg_dict.keys()) <= set(self.arguments)
 
         arg_list = [None] * len(self)
         for name, value in arg_dict.items():
             arg_list[self.arguments.index(name)] = value
 
-        return np.squeeze(self._pdf(*arg_list))[()]
+        return np.squeeze(self._pdf(arg_list))[()]
+
+    def _observe(self, kwargs):
+        raise NotImplementedError()
+
+    def observe(self, *args, **kwargs):
+        copy_opt = True
+        if 'copy' in kwargs:
+            copy_opt = kwargs['copy']
+            del kwargs['copy']
+
+        assert len(args) <= 1
+        arg_dict = args[0] if len(args) else {}
+        arg_dict.update(kwargs)
+        assert set(arg_dict.keys()) <= set(self.arguments)
+        return self._observe(arg_dict, copy=copy_opt)
 
     def __call__(self, *args, **kwargs):
-        return self.pdf(*args, **kwargs)
+        assert len(args) <= 1
+        arg_dict = args[0] if len(args) else {}
+        arg_dict.update(kwargs)
+
+        arg_set = set(arg_dict.keys())
+        assert arg_set <= set(self.arguments)
+        if arg_set >= set(self.scope):
+            arg_list = [None] * len(self)
+            for name, value in arg_dict.items():
+                arg_list[self.arguments.index(name)] = value
+            return self._pdf(arg_list)
+        else:
+            return self._observe(arg_dict)
 
     def __len__(self):
         return len(self.scope)
@@ -61,8 +86,20 @@ class TableFactor(Factor):
     def fitted(self):
         return self.table is not None
 
-    def _pdf(self, *args):
+    def _pdf(self, args):
         return self.table[tuple(arg if arg is not None else 0 for arg in args)]
+
+    @copy_option(default=True)
+    def _observe(self, kwargs):
+        indices = []
+        for name, val in kwargs.items():
+            if val is None:
+                indices.append(slice(None, None, None))
+            else:
+                indices.append([val])
+                self.scope.remove(name)
+        self.table = self.table[tuple(indices)]
+        return self
 
     @copy_option(default=True)
     def normalize(self, *variables):
