@@ -28,7 +28,7 @@ class ListTable(list):
 
     def _repr_html_(self):
         def to_rgb_str(rgba):
-            return '#%02x%02x%02x' % tuple(np.asarray(rgba[:3]) * 255.)
+            return '#%02x%02x%02x' % tuple((np.asarray(rgba[:3]) * 255.).astype('int'))
 
         params = {
             'header': [{'text': text} for text in self[0]],
@@ -52,7 +52,6 @@ class ListTable(list):
         }
         with open(os.path.join(SCRIPT_DIR, 'table_template.txt'), 'r') as f:
             return str(pystache.render(f.read(), params))
-
 
 def pretty_draw(g):
     css = """
@@ -125,3 +124,4 @@ g.mpld3-xaxis, g.mpld3-yaxis {
     plugins.connect(fig, tooltip)
 
     return mpld3.display()
+

@@ -30,3 +30,4 @@ def copy_option(default=False):
         return new_f
 
     return copy_option_decorator
+

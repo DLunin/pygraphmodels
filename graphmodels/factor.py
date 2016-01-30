@@ -1,9 +1,11 @@
 from .output import ListTable
 from .decorators import methoddispatch, copy_option
+from .misc import constant
 from itertools import repeat
 from copy import deepcopy
 import numpy as np
 import pandas as pd
+
 
 class Factor(object):
     def __init__(self, arguments, scope):
@@ -76,6 +78,27 @@ class IdentityFactor(object):
         return self.__str__()
 
 
+class DirichletTableFactorGen:
+    def __init__(self, n_values=None, alpha=1):
+        if n_values is None:
+            n_values = {}
+        self.alpha = alpha if hasattr(alpha, 'rvs') else constant(alpha)
+        self.n_values = n_values if hasattr(n_values, 'rvs') else constant(n_values)
+
+    def __call__(self, arguments, scope):
+        n_values = self.n_values.rvs()
+        n_values.update({var: 2 for var in scope if var not in n_values})
+
+        shape = np.asarray([n_values[var] if var in scope else 1 for var in arguments])
+        n = np.prod(shape)
+        alpha = self.alpha.rvs()
+        alpha = np.tile(alpha, n)
+
+        result = TableFactor(arguments, scope)
+        result.table = np.random.dirichlet(alpha).reshape(shape)
+        return result
+
+
 class TableFactor(Factor):
     def __init__(self, arguments, scope):
         Factor.__init__(self, arguments, scope)
@@ -90,12 +113,10 @@ class TableFactor(Factor):
 
     @copy_option(default=True)
     def _observe(self, kwargs):
-        indices = []
+        indices = [slice(None, None, None)] * len(self.arguments)
         for name, val in kwargs.items():
-            if val is None:
-                indices.append(slice(None, None, None))
-            else:
-                indices.append([val])
+            if val is not None:
+                indices[self.arguments.index(name)] = slice(val, val+1, None)
                 self.scope.remove(name)
         self.table = self.table[tuple(indices)]
         return self
@@ -114,6 +135,13 @@ class TableFactor(Factor):
             self.scope.remove(var)
         return self
 
+    def rvs(self, size=1):
+        table = self.table.flatten() / np.sum(self.table)
+        indices = np.sum(np.arange(table.shape[0])[None, :] * np.random.multinomial(1, table, size=size), axis=1)
+        result = np.asarray(np.unravel_index(indices, self.table.shape)).T
+        result = result[:, [i for i, var in enumerate(self.arguments) if var in self.scope]]
+        return pd.DataFrame(data=result, columns=self.scope)
+
     @methoddispatch
     def __mul__(self, other):
         assert type(other) == TableFactor
@@ -125,6 +153,9 @@ class TableFactor(Factor):
     @__mul__.register(IdentityFactor)
     def _(self, other):
         return deepcopy(self)
+
+    def __truediv__(self, other):
+        return self.__div__(other)
 
     @methoddispatch
     def __div__(self, other):
