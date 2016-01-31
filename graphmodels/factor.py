@@ -2,7 +2,7 @@ from .output import ListTable
 from .decorators import methoddispatch, copy_option
 from .misc import constant
 from itertools import repeat
-from copy import deepcopy
+from copy import deepcopy, copy
 import numpy as np
 import pandas as pd
 
@@ -40,7 +40,7 @@ class Factor(object):
         arg_dict = args[0] if len(args) else {}
         arg_dict.update(kwargs)
         assert set(arg_dict.keys()) <= set(self.arguments)
-        return self._observe(arg_dict, copy=copy_opt)
+        return self._observe({key: val for key, val in arg_dict.items() if key in self.scope}, copy=copy_opt)
 
     def __call__(self, *args, **kwargs):
         assert len(args) <= 1
@@ -68,8 +68,24 @@ class Factor(object):
 
 
 class IdentityFactor(object):
+    def __init__(self, arguments):
+        self.arguments = arguments
+
     def __mul__(self, other):
         return deepcopy(other)
+
+    def copy(self):
+        return IdentityFactor(copy(self.arguments))
+
+    @property
+    def scope(self):
+        return []
+
+    def marginalize(self, *args, **kwargs):
+        return self
+
+    def normalize(self, *args, **kwargs):
+        return self
 
     def __str__(self):
         return 'IdentityFactor'
@@ -103,6 +119,11 @@ class TableFactor(Factor):
     def __init__(self, arguments, scope):
         Factor.__init__(self, arguments, scope)
         self.table = None
+
+    def copy(self):
+        result = TableFactor(copy(self.arguments), copy(self.scope))
+        result.table = np.copy(self.table)
+        return result
 
     @property
     def fitted(self):
