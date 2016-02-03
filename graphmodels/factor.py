@@ -1,16 +1,16 @@
 from .output import ListTable
 from .decorators import methoddispatch, copy_option
-from .misc import constant
+from .misc import constant, invert_value_mapping
 from itertools import repeat
 from copy import deepcopy, copy
 import numpy as np
 import pandas as pd
 
-
 class Factor(object):
-    def __init__(self, arguments, scope):
+    def __init__(self, arguments, scope, value_mapping=None):
         self.arguments = list(arguments)
         self.scope = [name for name in arguments if name in scope]
+        self.value_mapping = value_mapping
 
     def _pdf(self, args):
         raise NotImplementedError()
@@ -21,7 +21,11 @@ class Factor(object):
         arg_dict.update(kwargs)
         assert set(arg_dict.keys()) <= set(self.arguments)
 
+        if self.value_mapping is not None:
+            arg_dict = {key: self.value_mapping[key][val] for key, val in arg_dict.items()}
+
         arg_list = [None] * len(self)
+
         for name, value in arg_dict.items():
             arg_list[self.arguments.index(name)] = value
 
@@ -40,12 +44,21 @@ class Factor(object):
         arg_dict = args[0] if len(args) else {}
         arg_dict.update(kwargs)
         assert set(arg_dict.keys()) <= set(self.arguments)
-        return self._observe({key: val for key, val in arg_dict.items() if key in self.scope}, copy=copy_opt)
+
+        if self.value_mapping is not None:
+            arg_dict = {key: self.value_mapping[key][val] for key, val in arg_dict.items()}
+
+        passed_dict = {key: val for key, val in arg_dict.items() if key in self.scope}
+
+        return self._observe(passed_dict, copy=copy_opt)
 
     def __call__(self, *args, **kwargs):
         assert len(args) <= 1
         arg_dict = args[0] if len(args) else {}
         arg_dict.update(kwargs)
+
+        if self.value_mapping is not None:
+            arg_dict = {key: self.value_mapping[key][val] for key, val in arg_dict.items()}
 
         arg_set = set(arg_dict.keys())
         assert arg_set <= set(self.arguments)
@@ -116,8 +129,8 @@ class DirichletTableFactorGen:
 
 
 class TableFactor(Factor):
-    def __init__(self, arguments, scope):
-        Factor.__init__(self, arguments, scope)
+    def __init__(self, arguments, scope, value_mapping=None):
+        Factor.__init__(self, arguments, scope, value_mapping=value_mapping)
         self.table = None
 
     def copy(self):
@@ -223,4 +236,4 @@ class TableFactor(Factor):
             return 'TableFactor(%s)' % ', '.join(map(str, self.scope))
         squeezed = np.squeeze(self.table)
         assert squeezed.ndim == len(self.scope)
-        return ListTable(squeezed, self.scope)._repr_html_()
+        return ListTable(squeezed, self.scope, value_mapping=invert_value_mapping(self.value_mapping))._repr_html_()

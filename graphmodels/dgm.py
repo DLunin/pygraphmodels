@@ -23,11 +23,16 @@ class ErdosRenyiDGMGen:
 
 
 class DGM(nx.DiGraph):
-    def __init__(self, *args):
+    def __init__(self, *args, **kwargs):
         super(DGM, self).__init__()
         if len(args) == 1:
             self.add_nodes_from(args[0].nodes(data=True))
             self.add_edges_from(args[0].edges(data=True))
+
+        if 'value_mapping' in kwargs:
+            self.value_mapping = kwargs['value_mapping']
+        else:
+            self.value_mapping = None
 
     def add_argument(self, argument):
         for factor in self.factors:
@@ -93,6 +98,8 @@ class DGM(nx.DiGraph):
             result.add_node(name, attr_dict=variable['properties'], n_values=variable['n_values'])
             values[name] = variable['values_list']
 
+        value_mapping = {key: {value: i for i, value in enumerate(lst)} for key, lst in values.items()}
+
         for distribution in parsed['distributions']:
             node = distribution['variables'][0]
             parents = distribution['variables'][1:]
@@ -116,6 +123,8 @@ class DGM(nx.DiGraph):
                         factor.table[current_args] = p
                 factor.table = np.transpose(factor.table, axes=axes_order)
 
+            factor.value_mapping = value_mapping
             result.node[node]['cpd'] = factor
 
+        result.value_mapping = value_mapping
         return result

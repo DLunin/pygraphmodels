@@ -19,12 +19,16 @@ class ListTable(list):
     IPython Notebook.
     """
 
-    def __init__(self, table, names):
+    def __init__(self, table, names, value_mapping=None):
         list.__init__(self)
         table = np.asarray(table)
         self.append(names + ['Prob.'])
         for v in product(*list(map((lambda x: list(range(x))), table.shape))):
-            self.append(list(v) + ["%0.3f" % table[v]])
+            if value_mapping is not None:
+                line = [value_mapping[name][val] for name, val in zip(names, v)]
+            else:
+                line = list(v)
+            self.append(line + ["%0.3f" % table[v]])
 
     def _repr_html_(self):
         def to_rgb_str(rgba):
