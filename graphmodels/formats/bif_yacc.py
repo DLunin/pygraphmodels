@@ -3,7 +3,7 @@ import numpy as np
 from functools import wraps
 
 # Get the token map from the lexer.  This is required.
-from pygraphmodels.graphmodels.formats.bif_lex import tokens
+from .bif_lex import tokens
 
 def list_rule(rule_name, elem_name, empty_allowed=False):
     def rule(p):
@@ -36,7 +36,7 @@ p_value = alternative_rule('value', ['WORD', 'FLOATING_POINT_LITERAL', 'DECIMAL_
 p_block = alternative_rule('block', ['variable_declaration', 'probability_declaration'])
 
 p_list = list_rule('list', 'value', empty_allowed=False)
-p_string = list_rule('string', 'WORD', empty_allowed=False)
+#p_string = list_rule('string', 'WORD', empty_allowed=False)
 p_property_list = list_rule('property_list', 'property_string', empty_allowed=False)
 p_floating_point_list = list_rule('floating_point_list', 'FLOATING_POINT_LITERAL', empty_allowed=False)
 p_blocks_list = list_rule('blocks_list', 'block', empty_allowed=False)
@@ -51,8 +51,8 @@ p_variable_content = list_rule('variable_content', 'variable_content_item', empt
 
 
 def p_property_string(p):
-    "property_string : PROPERTY WORD string ';'"
-    p[0] = 'property', {p[2]: ' '.join(p[3])}
+    "property_string : PROPERTY value list ';'"
+    p[0] = 'property', {p[2]: ' '.join(map(str, p[3])) if len(p[3]) > 0 else p[3][0]}
 
 
 def p_network_declaration(p):
@@ -143,24 +143,4 @@ def p_error(p):
     print('SYNTAX ERROR:', p.type, p.value)
 
 start = 'compilation_unit'
-
-parser = yacc.yacc()
-
-with open('example.bif', 'r') as f:
-    s = f.read()
-
-result = parser.parse(s)
-for variable in result['variables']:
-    print('variable {0}:'.format(variable['name']))
-    print('properties: ', variable['properties'])
-    print('n_values: ', variable['n_values'])
-    print('values: ', variable['values_list'])
-    print()
-
-for distr in result['distributions']:
-    print('distribution over {0}:'.format(distr['variables']))
-    print('default: ', distr['default'])
-    print('table: ', distr['table'])
-    print('prob: ', distr['probability'])
-    print('properties: ', distr['properties'])
-    print()
+bif_parser = yacc.yacc()

@@ -2,7 +2,11 @@ from .output import pretty_draw
 from .misc import constant
 import networkx as nx
 import pandas as pd
-
+import numpy as np
+from .formats import bif_parser
+import os.path
+from itertools import repeat
+from .factor import TableFactor
 
 class ErdosRenyiDGMGen:
     def __init__(self, n=10, p=0.5, factor_gen=None):
@@ -67,3 +71,52 @@ class DGM(nx.DiGraph):
 
     def draw(self):
         return pretty_draw(self)
+
+    @staticmethod
+    def read(filename):
+        name, ext = os.path.splitext(filename)
+        return getattr(DGM, '_read_' + ext[1:])(filename)
+
+    @staticmethod
+    def _read_bif(filename):
+        with open(filename, 'r') as f:
+            text = f.read()
+        parsed = bif_parser.parse(text)
+
+        result = DGM()
+        arguments = [var['name'] for var in parsed['variables']]
+
+        values = {}
+
+        for variable in parsed['variables']:
+            name = variable['name']
+            result.add_node(name, attr_dict=variable['properties'], n_values=variable['n_values'])
+            values[name] = variable['values_list']
+
+        for distribution in parsed['distributions']:
+            node = distribution['variables'][0]
+            parents = distribution['variables'][1:]
+            scope = distribution['variables']
+            result.add_edges_from(zip(parents, repeat(node)))
+            factor = TableFactor(arguments=arguments, scope=distribution['variables'])
+
+            table_shape = tuple(result.node[var]['n_values'] for var in scope) + (1,) * (len(arguments) - len(scope))
+            extended_scope = scope + [var for var in arguments if var not in scope]
+            axes_order = [extended_scope.index(arg) for arg in arguments]
+            if distribution['table'] is not None:
+                factor.table = distribution['table']
+                factor.table.resize(np.prod(table_shape))
+                factor.table = factor.table.reshape(table_shape)
+                factor.table = np.transpose(factor.table, axes=axes_order)
+            else:
+                factor.table = np.zeros(table_shape)
+                for args, prob in distribution['probability'].items():
+                    for i, p in enumerate(prob):
+                        current_args = (i, ) + tuple(values[var].index(arg) for var, arg in zip(parents, args)) + (0,) * (len(arguments) - len(scope))
+                        print(current_args, p)
+                        factor.table[current_args] = p
+                factor.table = np.transpose(factor.table, axes=axes_order)
+
+            result.node[node]['cpd'] = factor
+
+        return result
