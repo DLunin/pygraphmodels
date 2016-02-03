@@ -129,6 +129,12 @@ class TableFactor(Factor):
     def fitted(self):
         return self.table is not None
 
+    @copy_option(default=False)
+    def add_argument(self, argument):
+        self.arguments.append(argument)
+        self.table = self.table.reshape(self.table.shape + (1,))
+        return self
+
     def _pdf(self, args):
         return self.table[tuple(arg if arg is not None else 0 for arg in args)]
 

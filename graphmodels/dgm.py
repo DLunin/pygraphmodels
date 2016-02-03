@@ -5,7 +5,7 @@ import pandas as pd
 
 
 class ErdosRenyiDGMGen:
-    def __init__(self, n=None, p=None, factor_gen=None):
+    def __init__(self, n=10, p=0.5, factor_gen=None):
         self.n = n if hasattr(n, 'rvs') else constant(n)
         self.p = p if hasattr(p, 'rvs') else constant(p)
         self.factor_gen = factor_gen
@@ -24,6 +24,11 @@ class DGM(nx.DiGraph):
         if len(args) == 1:
             self.add_nodes_from(args[0].nodes(data=True))
             self.add_edges_from(args[0].edges(data=True))
+
+    def add_argument(self, argument):
+        for factor in self.factors:
+            factor.add_argument(argument, copy=False)
+        return self
 
     def fit(self, data, *args, **kwargs):
         for node, node_data in self.nodes(data=True):
