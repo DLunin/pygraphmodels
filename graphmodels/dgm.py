@@ -113,7 +113,6 @@ class DGM(nx.DiGraph):
                 for args, prob in distribution['probability'].items():
                     for i, p in enumerate(prob):
                         current_args = (i, ) + tuple(values[var].index(arg) for var, arg in zip(parents, args)) + (0,) * (len(arguments) - len(scope))
-                        print(current_args, p)
                         factor.table[current_args] = p
                 factor.table = np.transpose(factor.table, axes=axes_order)
 
