@@ -7,10 +7,11 @@ import numpy as np
 import pandas as pd
 
 class Factor(object):
-    def __init__(self, arguments, scope, value_mapping=None):
+    def __init__(self, arguments, scope, value_mapping=None, enable_value_mapping=True):
         self.arguments = list(arguments)
         self.scope = [name for name in arguments if name in scope]
         self.value_mapping = value_mapping
+        self.enable_value_mapping = enable_value_mapping
 
     def _pdf(self, args):
         raise NotImplementedError()
@@ -21,7 +22,7 @@ class Factor(object):
         arg_dict.update(kwargs)
         assert set(arg_dict.keys()) <= set(self.arguments)
 
-        if self.value_mapping is not None:
+        if self.value_mapping is not None and self.enable_value_mapping:
             arg_dict = {key: self.value_mapping[key][val] for key, val in arg_dict.items()}
 
         arg_list = [None] * len(self)
@@ -45,7 +46,7 @@ class Factor(object):
         arg_dict.update(kwargs)
         assert set(arg_dict.keys()) <= set(self.arguments)
 
-        if self.value_mapping is not None:
+        if self.value_mapping is not None and self.enable_value_mapping:
             arg_dict = {key: self.value_mapping[key][val] for key, val in arg_dict.items()}
 
         passed_dict = {key: val for key, val in arg_dict.items() if key in self.scope}
@@ -57,7 +58,7 @@ class Factor(object):
         arg_dict = args[0] if len(args) else {}
         arg_dict.update(kwargs)
 
-        if self.value_mapping is not None:
+        if self.value_mapping is not None and self.enable_value_mapping:
             arg_dict = {key: self.value_mapping[key][val] for key, val in arg_dict.items()}
 
         arg_set = set(arg_dict.keys())
@@ -180,6 +181,9 @@ class TableFactor(Factor):
         indices = np.sum(np.arange(table.shape[0])[None, :] * np.random.multinomial(1, table, size=size), axis=1)
         result = np.asarray(np.unravel_index(indices, self.table.shape)).T
         result = result[:, [i for i, var in enumerate(self.arguments) if var in self.scope]]
+        if self.value_mapping is not None and self.enable_value_mapping:
+            inverse_vm = invert_value_mapping(self.value_mapping)
+            result = np.vstack([np.asarray([inverse_vm[cname][value] for value in column]) for cname, column in zip(self.scope, result.T)]).T
         return pd.DataFrame(data=result, columns=self.scope)
 
     @methoddispatch
