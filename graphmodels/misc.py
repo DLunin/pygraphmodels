@@ -1,5 +1,6 @@
 import numpy as np
 from copy import copy
+import pandas as pd
 
 
 class constant:
@@ -20,3 +21,19 @@ def invert_value_mapping(value_mapping):
         if isinstance(mapping, dict):
             result[name] = {val: key for key, val in mapping.items()}
     return result
+
+
+def column_value_mapping(column):
+    unique = pd.unique(column)
+    return dict(zip(unique, range(len(unique))))
+
+
+def dataframe_value_mapping(df):
+    result = {}
+    for name, column in zip(df.columns, df.values.T):
+        result[name] = column_value_mapping(column)
+    return result
+
+
+def encode_dataframe(df, vm):
+    return pd.DataFrame(data={column: df[column].map(vm[column].__getitem__) for column in df.columns})

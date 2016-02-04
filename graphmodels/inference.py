@@ -21,12 +21,12 @@ class NaiveInference(InferenceStrategy):
         InferenceStrategy.__init__(self, gm)
 
     def __call__(self, query, observed=None):
-        if observed is not None:
-            raise NotImplementedError()
+        if observed is None:
+            observed = {}
         eliminated = [var for var in self.arguments if var not in query]
         result = IdentityFactor(self.arguments)
         for factor in self.gm.factors:
-            result = result * factor
+            result = result * factor.observe(observed)
         result.marginalize(*eliminated, copy=False)
         return result.normalize(*query)
 

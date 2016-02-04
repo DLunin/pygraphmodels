@@ -1,10 +1,11 @@
 from .output import ListTable
 from .decorators import methoddispatch, copy_option
-from .misc import constant, invert_value_mapping
+from .misc import constant, invert_value_mapping, dataframe_value_mapping, encode_dataframe
 from itertools import repeat
 from copy import deepcopy, copy
 import numpy as np
 import pandas as pd
+
 
 class Factor(object):
     def __init__(self, arguments, scope, value_mapping=None, enable_value_mapping=True):
@@ -170,6 +171,7 @@ class TableFactor(Factor):
 
     @copy_option(default=True)
     def marginalize(self, *variables):
+        variables = [var for var in variables if var in self.scope]
         if self.table is not None and len(variables) > 0:
             self.table = np.sum(self.table, axis=tuple(map(self.arguments.index, variables)), keepdims=True)
         for var in variables:
@@ -220,7 +222,12 @@ class TableFactor(Factor):
     def _(self, other):
         return deepcopy(self)
 
-    def fit(self, data, n_values=None):
+    def fit(self, data, n_values=None, value_mapping=None, already_transformed=False):
+        if value_mapping is None:
+            value_mapping = dataframe_value_mapping(data)
+        if not already_transformed:
+            data = encode_dataframe(data, value_mapping)
+
         assert isinstance(data, pd.DataFrame)
         data = data[self.scope].values
         if n_values is None:
@@ -233,6 +240,7 @@ class TableFactor(Factor):
 
         semicolon = slice(None, None, None)
         self.table = hist[tuple(semicolon if name in self.scope else np.newaxis for name in self.arguments)]
+        self.value_mapping = value_mapping
         return self
 
     def _repr_html_(self):

@@ -1,5 +1,5 @@
 from .output import pretty_draw
-from .misc import constant
+from .misc import constant, dataframe_value_mapping, encode_dataframe
 import networkx as nx
 import pandas as pd
 import numpy as np
@@ -40,6 +40,9 @@ class DGM(nx.DiGraph):
         return self
 
     def fit(self, data, *args, **kwargs):
+        value_mapping = dataframe_value_mapping(data)
+        kwargs.update(value_mapping=value_mapping, already_transformed=True)
+        data = encode_dataframe(data, value_mapping)
         for node, node_data in self.nodes(data=True):
             if 'cpd' not in node_data:
                 raise Exception('cpd not specified for node %s' % str(node))
@@ -76,6 +79,9 @@ class DGM(nx.DiGraph):
 
     def draw(self):
         return pretty_draw(self)
+
+    def values(self, var):
+        return list(self.node[var]['cpd'].value_mapping[var].keys())
 
     @staticmethod
     def read(filename):
