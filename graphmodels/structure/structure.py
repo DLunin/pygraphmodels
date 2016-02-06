@@ -1,5 +1,5 @@
-from .dgm import DGM
-from .factor import TableFactor
+from ..dgm import DGM
+from ..factor import TableFactor
 import numpy as np
 import pandas as pd
 import networkx as nx

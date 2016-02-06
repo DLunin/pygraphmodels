@@ -1,4 +1,4 @@
-from .factor import IdentityFactor
+from ..factor import IdentityFactor
 import numpy as np
 from functools import reduce
 import operator
@@ -14,6 +14,24 @@ class InferenceStrategy:
     @property
     def arguments(self):
         return list(self.gm.nodes())
+
+    def _call(self, query, observed=None):
+        raise NotImplementedError()
+
+    def __call__(self, *args, **kwargs):
+        observed = {}
+        query = args
+        if 'observed' in kwargs:
+            observed = kwargs['observed']
+            del kwargs['observed']
+        if 'target' in kwargs:
+            query += kwargs['query']
+            del kwargs['query']
+        elif len(args) >= 1 and isinstance(args[-1], dict):
+            observed.update(args[-1])
+            query = args[:-1]
+        observed.update(kwargs)
+        return self._call(query, observed=observed)
 
 
 class NaiveInference(InferenceStrategy):
