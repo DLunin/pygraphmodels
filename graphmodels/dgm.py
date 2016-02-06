@@ -5,8 +5,42 @@ import pandas as pd
 import numpy as np
 from .formats import bif_parser
 import os.path
-from itertools import repeat
+from itertools import repeat, combinations
 from .factor import TableFactor
+
+
+def descendants(G, x):
+    """
+    Set of all descendants of node in a graph, not including itself.
+    :param G: target graph
+    :param x: target node
+    :return: set of descendants
+    """
+    return set(nx.dfs_preorder_nodes(G, x)) - {x}
+
+
+def ancestors(G, x):
+    """
+    Set of all ancestors of node in a graph, not including itself.
+    :param G: target graph
+    :param x: target node
+    :return: set of ancestors
+    """
+    G_reversed = G.reverse()
+    return descendants(G_reversed, x)
+
+
+def are_equal_graphs(G1, G2):
+    """
+    Check graph equality (equal node names, and equal edges between them).
+    :param G1: first graph
+    :param G2: second graph
+    :return: are they equal
+    """
+    if set(G1.nodes()) != set(G2.nodes()):
+        return False
+    return all(map(lambda x: G1.has_edge(*x), G2.edges())) and all(map(lambda x: G2.has_edge(*x), G1.edges()))
+
 
 class ErdosRenyiDGMGen:
     def __init__(self, n=10, p=0.5, factor_gen=None):
@@ -125,7 +159,11 @@ class DGM(nx.DiGraph):
                 factor.table = np.zeros(table_shape)
                 for args, prob in distribution['probability'].items():
                     for i, p in enumerate(prob):
-                        current_args = (i, ) + tuple(values[var].index(arg) for var, arg in zip(parents, args)) + (0,) * (len(arguments) - len(scope))
+                        current_args = (i,) + tuple(values[var].index(arg) for var, arg in zip(parents, args)) + (
+                                                                                                                     0,) * (
+                                                                                                                     len(
+                                                                                                                             arguments) - len(
+                                                                                                                             scope))
                         factor.table[current_args] = p
                 factor.table = np.transpose(factor.table, axes=axes_order)
 
@@ -134,3 +172,114 @@ class DGM(nx.DiGraph):
 
         result.value_mapping = value_mapping
         return result
+
+    @property
+    def is_moral(self):
+        """
+        A graph is moral if it has no immoralities.
+        :param self: target graph
+        :return: is target graph moral
+        """
+        return len(list(self.immoralities)) == 0
+
+    @property
+    def immoralities(G):
+        """
+        Iterate over all immoralities in a graph.
+        :param G: target graph
+        :return: iterator over immoralities in form (node, parent1, parent2)
+        """
+        return filter(lambda v: (not G.has_edge(v[1], v[2])) and (not G.has_edge(v[2], v[1])), G.v_structures)
+
+    @property
+    def v_structures(G):
+        """
+        Iterate over all v-structures in a graph.
+        :param G: target graph
+        :return: iterator over v-structures in form (node, parent1, parent2)
+        """
+        for x in G.nodes():
+            for p1, p2 in combinations(G.predecessors(x), r=2):
+                yield x, p1, p2
+
+    def reachable(self, source, observed):
+        """
+        Finds a set of reachable (in the sense of d-separation) nodes in graph.
+        :param self: target graph
+        :param source: source node name
+        :param observed: a sequence of observed nodes
+        :return: a set of reachable nodes
+        """
+        V = nx.number_of_nodes(self)
+        A = set(sum([list(nx.dfs_preorder_nodes(self.reverse(), z)) for z in observed], []))
+        Z = observed
+        L = [(source, 'up')]
+        V = set()
+        result = set()
+        while len(L) > 0:
+            x, d = L.pop()
+            if (x, d) in V:
+                continue
+            if x not in Z:
+                result.add((x, d))
+            V.add((x, d))
+            if d == 'up' and x not in Z:
+                for y in self.predecessors_iter(x):
+                    L.append((y, 'up'))
+                for y in self.successors_iter(x):
+                    L.append((y, 'down'))
+            elif d == 'down':
+                if x in A:
+                    for y in self.predecessors_iter(x):
+                        L.append((y, 'up'))
+                if x not in Z:
+                    for y in self.successors_iter(x):
+                        L.append((y, 'down'))
+        result = set([x[0] for x in result])
+        return result - {source}
+
+    def is_covered(self, edge):
+        """
+        Checks if the edge is covered.
+        :param self: graph
+        :param edge: edge to check
+        :return: is edge covered
+        """
+        x, y = edge
+        return set(self.predecessors_iter(y)) - set(self.predecessors_iter(x)) == {x}
+
+    def is_I_map(self, other):
+        """
+        Is self an I-map of other?
+        """
+        for x in self.nodes():
+            pa = set(self.predecessors(x))
+            non_descendants = set(self.nodes()) - descendants(self, x) - {x}
+            if set.intersection(other.reachable(x, pa), non_descendants - pa):
+                return False
+        return True
+
+    def is_I_equivalent(self, other):
+        """
+        Check if two graphs are I-equivalent
+        :param self: first graph
+        :param other: second graph
+        :return: are the graphs I-equivalent
+        """
+
+        # same undirected skeleton
+        if not are_equal_graphs(self.to_undirected(), other.to_undirected()):
+            return False
+
+        # same immoralities
+        for x in self.nodes():
+            for p1, p2 in set.union(set(combinations(self.predecessors(x), r=2)),
+                                    set(combinations(other.predecessors(x), r=2))):
+                if self.has_edge(p1, p2) or self.has_edge(p2, p1):
+                    continue
+                if other.has_edge(p1, x) and other.has_edge(p2, x):
+                    continue
+                return False
+
+        # everything OK
+        return True
