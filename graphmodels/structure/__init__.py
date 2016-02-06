@@ -1,1 +1,2 @@
-from .structure import chow_liu, discrete_mutual_information
+from .structure import chow_liu
+from .information import discrete_mutual_information, information_matrix
