@@ -8,7 +8,6 @@ import os.path
 from itertools import repeat, combinations
 from .factor import TableFactor
 
-
 def descendants(G, x):
     """
     Set of all descendants of node in a graph, not including itself.
@@ -86,19 +85,12 @@ class DGM(nx.DiGraph):
             node_data['cpd'].normalize(node, copy=False)
         return self
 
-    def _rvs(self):
-        result = {}
+    def rvs(self, size=1):
+        result = pd.DataFrame(data={}, index=list(range(size)))
         for node in nx.topological_sort(self):
             cpd = self.cpd(node)
-            conditional_cpd = cpd({parent: result[parent][0] for parent in self.predecessors(node)})
-            result.update(conditional_cpd.rvs().to_dict())
-        return pd.DataFrame(data=result)
-
-    def rvs(self, size=1):
-        result = []
-        for i in range(size):
-            result.append(self._rvs())
-        return pd.concat(result, ignore_index=True)
+            result[node] = cpd.rvs(size=size, observed=result)[node]
+        return result
 
     @property
     def factors(self):
@@ -159,11 +151,8 @@ class DGM(nx.DiGraph):
                 factor.table = np.zeros(table_shape)
                 for args, prob in distribution['probability'].items():
                     for i, p in enumerate(prob):
-                        current_args = (i,) + tuple(values[var].index(arg) for var, arg in zip(parents, args)) + (
-                                                                                                                     0,) * (
-                                                                                                                     len(
-                                                                                                                             arguments) - len(
-                                                                                                                             scope))
+                        current_args = (i,) + tuple(values[var].index(arg) for var, arg in zip(parents, args)) \
+                                       + (0,) * (len(arguments) - len(scope))
                         factor.table[current_args] = p
                 factor.table = np.transpose(factor.table, axes=axes_order)
 

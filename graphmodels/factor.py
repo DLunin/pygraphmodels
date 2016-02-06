@@ -6,7 +6,6 @@ from copy import deepcopy, copy
 import numpy as np
 import pandas as pd
 
-
 class Factor(object):
     def __init__(self, arguments, scope, value_mapping=None, enable_value_mapping=True):
         self.arguments = list(arguments)
@@ -138,6 +137,8 @@ class TableFactor(Factor):
     def copy(self):
         result = TableFactor(copy(self.arguments), copy(self.scope))
         result.table = np.copy(self.table)
+        result.value_mapping = self.value_mapping
+        result.enable_value_mapping = self.enable_value_mapping
         return result
 
     @property
@@ -178,7 +179,7 @@ class TableFactor(Factor):
             self.scope.remove(var)
         return self
 
-    def rvs(self, size=1):
+    def _rvs(self, size=1):
         table = self.table.flatten() / np.sum(self.table)
         indices = np.sum(np.arange(table.shape[0])[None, :] * np.random.multinomial(1, table, size=size), axis=1)
         result = np.asarray(np.unravel_index(indices, self.table.shape)).T
@@ -187,6 +188,18 @@ class TableFactor(Factor):
             inverse_vm = invert_value_mapping(self.value_mapping)
             result = np.vstack([np.asarray([inverse_vm[cname][value] for value in column]) for cname, column in zip(self.scope, result.T)]).T
         return pd.DataFrame(data=result, columns=self.scope)
+
+    def rvs(self, size=1, observed=None):
+        if observed is None:
+            observed = pd.DataFrame(data={}, index=list(range(size)))
+        elif isinstance(observed, dict):
+            observed = pd.DataFrame(data=observed, index=list(range(size)))
+
+        result = []
+        for i in range(size):
+            result.append(self.observe(observed.iloc[i].to_dict(), copy=True)._rvs(size=1))
+        result = pd.concat(result, axis=0, ignore_index=True)
+        return result
 
     @methoddispatch
     def __mul__(self, other):
@@ -225,6 +238,7 @@ class TableFactor(Factor):
     def fit(self, data, n_values=None, value_mapping=None, already_transformed=False):
         if value_mapping is None:
             value_mapping = dataframe_value_mapping(data)
+
         if not already_transformed:
             data = encode_dataframe(data, value_mapping)
 
