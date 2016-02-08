@@ -8,6 +8,7 @@ import os.path
 from itertools import repeat, combinations
 from .factor import TableFactor
 
+
 def descendants(G, x):
     """
     Set of all descendants of node in a graph, not including itself.
@@ -49,6 +50,35 @@ class ErdosRenyiDGMGen:
 
     def __call__(self):
         result = DGM(nx.gnp_random_graph(self.n.rvs(), self.p.rvs()))
+        for node, node_data in result.nodes(data=True):
+            node_data['cpd'] = self.factor_gen(result.nodes(), ([node] + result.predecessors(node)))
+            node_data['cpd'].normalize(node, copy=False)
+        return result
+
+
+class TreeDGMGen:
+    def __init__(self, n=10, factor_gen=None):
+        self.n = n if hasattr(n, 'rvs') else constant(n)
+        self.factor_gen = factor_gen
+
+    def __call__(self):
+        def random_tree(n=10):
+            assert n >= 1
+            nodes = [0]
+            result = nx.DiGraph()
+            result.add_nodes_from(list(range(n)))
+            counter = 1
+            n -= 1
+            while n >= 1:
+                node = nodes.pop()
+                n_children = np.random.randint(1, n + 1)
+                nodes += [i for i in range(counter, counter + n_children)]
+                result.add_edges_from(zip(repeat(node), range(counter, counter + n_children)))
+                counter += n_children
+                n -= n_children
+            return result
+
+        result = DGM(random_tree(n=self.n.rvs()))
         for node, node_data in result.nodes(data=True):
             node_data['cpd'] = self.factor_gen(result.nodes(), ([node] + result.predecessors(node)))
             node_data['cpd'].normalize(node, copy=False)
