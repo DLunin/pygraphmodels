@@ -186,7 +186,7 @@ class DGM(nx.DiGraph):
                         factor.table[current_args] = p
                 factor.table = np.transpose(factor.table, axes=axes_order)
 
-            factor.value_mapping = value_mapping
+            factor._value_mapping = value_mapping
             result.node[node]['cpd'] = factor
 
         result.value_mapping = value_mapping

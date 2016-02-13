@@ -37,3 +37,11 @@ def dataframe_value_mapping(df):
 def encode_dataframe(df, vm):
     assert isinstance(df, pd.DataFrame)
     return pd.DataFrame(data={column: df[column].map(vm[column].__getitem__) for column in df.columns})
+
+
+class IdentityValueMapping:
+    def __init__(self):
+        pass
+
+    def __getitem__(self, item):
+        return item
