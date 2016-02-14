@@ -1,12 +1,12 @@
 from .output import pretty_draw
-from .misc import constant, dataframe_value_mapping, encode_dataframe
+from .misc import constant, dataframe_value_mapping
 import networkx as nx
 import pandas as pd
 import numpy as np
 from .formats import bif_parser
 import os.path
 from itertools import repeat, combinations
-from .factor import TableFactor
+from .factor import TableFactor, DictValueMapping
 
 
 def descendants(G, x):
@@ -103,9 +103,9 @@ class DGM(nx.DiGraph):
         return self
 
     def fit(self, data, *args, **kwargs):
-        value_mapping = dataframe_value_mapping(data)
-        kwargs.update(value_mapping=value_mapping, already_transformed=True)
-        data = encode_dataframe(data, value_mapping)
+        value_mapping = DictValueMapping().fit(data)
+        kwargs['disable_value_mapping'] = True
+        data = value_mapping.transform(data)
         for node, node_data in self.nodes(data=True):
             if 'cpd' not in node_data:
                 raise Exception('cpd not specified for node %s' % str(node))
@@ -113,6 +113,7 @@ class DGM(nx.DiGraph):
                 node_data['cpd'] = node_data['cpd'](self.nodes(), ([node] + self.predecessors(node)))
             node_data['cpd'].fit(data, *args, **kwargs)
             node_data['cpd'].normalize(node, copy=False)
+            node_data['cpd'].value_mapping = value_mapping
         return self
 
     def rvs(self, size=1):
@@ -161,6 +162,7 @@ class DGM(nx.DiGraph):
             values[name] = variable['values_list']
 
         value_mapping = {key: {value: i for i, value in enumerate(lst)} for key, lst in values.items()}
+        value_mapping = DictValueMapping(value_mapping)
 
         for distribution in parsed['distributions']:
             node = distribution['variables'][0]
@@ -186,7 +188,8 @@ class DGM(nx.DiGraph):
                         factor.table[current_args] = p
                 factor.table = np.transpose(factor.table, axes=axes_order)
 
-            factor._value_mapping = value_mapping
+
+            factor.value_mapping = value_mapping
             result.node[node]['cpd'] = factor
 
         result.value_mapping = value_mapping

@@ -2,6 +2,7 @@ import numpy as np
 from copy import copy
 import pandas as pd
 
+
 class constant:
     def __init__(self, val):
         self.val = val
@@ -34,14 +35,10 @@ def dataframe_value_mapping(df):
     return result
 
 
-def encode_dataframe(df, vm):
-    assert isinstance(df, pd.DataFrame)
-    return pd.DataFrame(data={column: df[column].map(vm[column].__getitem__) for column in df.columns})
+def extract_kwarg(name, kwargs, default=None):
+    result = default
+    if name in kwargs:
+        result = kwargs[name]
+        del kwargs[name]
+    return result
 
-
-class IdentityValueMapping:
-    def __init__(self):
-        pass
-
-    def __getitem__(self, item):
-        return item

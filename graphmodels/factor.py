@@ -1,79 +1,139 @@
 from .output import ListTable
-from .decorators import methoddispatch, copy_option
-from .misc import constant, invert_value_mapping, dataframe_value_mapping, encode_dataframe, IdentityValueMapping
+from .meta import copy_option, methoddispatch
+from .misc import constant, invert_value_mapping, dataframe_value_mapping, extract_kwarg
+from .multinomial import multinomial
 from itertools import repeat
 from copy import deepcopy, copy
 import numpy as np
 import pandas as pd
 
 
-class Factor(object):
-    def __init__(self, arguments, scope, value_mapping=None, enable_value_mapping=True):
-        self.arguments = list(arguments)
-        self.scope = [name for name in arguments if name in scope]
-        self._value_mapping = value_mapping
-        self.enable_value_mapping = enable_value_mapping
+class IdentityValueMapping:
+    @property
+    def fitted(self):
+        return True
+
+    def fit(self, data):
+        return self
+
+    def transform(self, data, copy=True):
+        return data.copy() if copy else data
+
+    def inverse_transform(self, data, copy=True):
+        return data.copy() if copy else data
+
+
+class DictValueMapping:
+    def __init__(self, mapping=None):
+        self.mapping = mapping
+        self.inverse_mapping = invert_value_mapping(self.mapping)
 
     @property
-    def value_mapping(self):
-        if self._value_mapping is not None and self.enable_value_mapping:
-            return self._value_mapping
-        return IdentityValueMapping()
+    def fitted(self):
+        return self.mapping is not None
+
+    def fit(self, data):
+        self.mapping = dataframe_value_mapping(data)
+        self.inverse_mapping = invert_value_mapping(self.mapping)
+        return self
+
+    @staticmethod
+    def _transform_column(column, value_mapping):
+        if isinstance(column, pd.Series):
+            return column.map(value_mapping)
+        elif isinstance(column, np.ndarray) or isinstance(column, list):
+            return np.asarray([value_mapping[x] for x in column])
+        else:
+            return value_mapping[column]
+
+    @staticmethod
+    def _transform(data, value_mapping):
+        if data is None:
+            return None
+        elif isinstance(data, pd.DataFrame):
+            data = data.copy()
+            for column in data.columns:
+                data[column] = DictValueMapping._transform_column(data[column], value_mapping[column])
+            return data
+        elif isinstance(data, dict):
+            return {key: DictValueMapping._transform_column(val, value_mapping[key]) for key, val in data.items()}
+
+    def transform(self, data, copy=True):
+        return DictValueMapping._transform(data, self.mapping)
+
+    def inverse_transform(self, data, copy=True):
+        return DictValueMapping._transform(data, self.inverse_mapping)
+
+
+class Factor(object):
+    def __init__(self, arguments, scope, value_mapping=None):
+        self.arguments = list(arguments)
+        self.scope = [name for name in arguments if name in scope]
+
+        if value_mapping is None:
+            self.value_mapping = IdentityValueMapping()
+        else:
+            self.value_mapping = value_mapping
 
     def _pdf(self, args):
         raise NotImplementedError()
 
-    def pdf(self, *args, **kwargs):
+    def _parse_kwargs(self, *args, **kwargs):
         assert len(args) <= 1
         arg_dict = args[0] if len(args) else {}
         arg_dict.update(kwargs)
         assert set(arg_dict.keys()) <= set(self.arguments)
+        return self.value_mapping.transform(arg_dict)
 
-        arg_dict = {key: self.value_mapping[key][val] for key, val in arg_dict.items()}
-
+    def _build_arglist(self, arg_dict):
         arg_list = [None] * len(self)
-
         for name, value in arg_dict.items():
             arg_list[self.arguments.index(name)] = value
+        return arg_list
 
+    def pdf(self, *args, **kwargs):
+        arg_dict = self._parse_kwargs(*args, **kwargs)
+
+        arg_list = self._build_arglist(arg_dict)
         return np.squeeze(self._pdf(arg_list))[()]
 
-    def _observe(self, kwargs):
+    def _observe(self, kwargs, copy=True):
         raise NotImplementedError()
 
     def observe(self, *args, **kwargs):
-        copy_opt = True
-        if 'copy' in kwargs:
-            copy_opt = kwargs['copy']
-            del kwargs['copy']
+        copy_opt = extract_kwarg('copy', kwargs, default=True)
 
-        assert len(args) <= 1
-        arg_dict = args[0] if len(args) else {}
-        arg_dict.update(kwargs)
-        assert set(arg_dict.keys()) <= set(self.arguments)
-
-        arg_dict = {key: self.value_mapping[key][val] for key, val in arg_dict.items()}
-
+        arg_dict = self._parse_kwargs(*args, **kwargs)
         passed_dict = {key: val for key, val in arg_dict.items() if key in self.scope}
-
         return self._observe(passed_dict, copy=copy_opt)
 
     def __call__(self, *args, **kwargs):
-        assert len(args) <= 1
-        arg_dict = args[0] if len(args) else {}
-        arg_dict.update(kwargs)
-
-        arg_dict = {key: self.value_mapping[key][val] for key, val in arg_dict.items()}
+        arg_dict = self._parse_kwargs(*args, **kwargs)
 
         arg_set = set(arg_dict.keys())
         assert arg_set <= set(self.arguments)
         if arg_set >= set(self.scope):
-            arg_list = [None] * len(self)
-            for name, value in arg_dict.items():
-                arg_list[self.arguments.index(name)] = value
-            return self._pdf(arg_list)
+            arg_list = self._build_arglist(arg_dict)
+            return np.squeeze(self._pdf(arg_list))[()]
         else:
             return self._observe(arg_dict)
+
+    def fit(self, data, **kwargs):
+        disable_value_mapping = extract_kwarg('disable_value_mapping', kwargs, False)
+        if disable_value_mapping:
+            self.value_mapping = IdentityValueMapping()
+        else:
+            self.value_mapping = DictValueMapping().fit(data)
+            data = self.value_mapping.transform(data)
+        return self._fit(data, **kwargs)
+
+    def _rvs(self, size=1, observed=None):
+        raise NotImplementedError()
+
+    def rvs(self, size=1, observed=None):
+        observed = self.value_mapping.transform(observed)
+        result = self._rvs(size=size, observed=observed)
+        return self.value_mapping.inverse_transform(result)
 
     def __len__(self):
         return len(self.scope)
@@ -139,10 +199,8 @@ class TableFactor(Factor):
         self.table = None
 
     def copy(self):
-        result = TableFactor(copy(self.arguments), copy(self.scope))
+        result = TableFactor(copy(self.arguments), copy(self.scope), value_mapping=self.value_mapping)
         result.table = np.copy(self.table)
-        result._value_mapping = self._value_mapping
-        result.enable_value_mapping = self.enable_value_mapping
         return result
 
     @property
@@ -183,34 +241,32 @@ class TableFactor(Factor):
             self.scope.remove(var)
         return self
 
-    def _rvs(self, size=1):
-        table = self.table.flatten() / np.sum(self.table)
-        indices = np.sum(np.arange(table.shape[0])[None, :] * np.random.multinomial(1, table, size=size), axis=1)
-        result = np.asarray(np.unravel_index(indices, self.table.shape)).T
-        result = result[:, [i for i, var in enumerate(self.arguments) if var in self.scope]]
-
-        inverse_vm = invert_value_mapping(self.value_mapping)
-        result = np.vstack([np.asarray([inverse_vm[cname][value] for value in column]) for cname, column in zip(self.scope, result.T)]).T
-
-        return pd.DataFrame(data=result, columns=self.scope)
-
-    def rvs(self, size=1, observed=None):
+    def _rvs(self, size=1, observed=None):
         if observed is None:
-            observed = pd.DataFrame(data={}, index=list(range(size)))
+            observed = pd.DataFrame(index=np.arange(size))
         elif isinstance(observed, dict):
-            observed = pd.DataFrame(data=observed, index=list(range(size)))
+            observed = pd.DataFrame(data=observed)
+        size = observed.shape[0]
+        n_observed = len(set(observed.columns) & set(self.scope))
 
-        result = []
-        for i in range(size):
-            result.append(self.observe(observed.iloc[i].to_dict(), copy=True)._rvs(size=1))
-        result = pd.concat(result, axis=0, ignore_index=True)
-        return result
+        obs_idx = tuple(observed[arg].values if (arg in observed.columns) and (arg in self.scope) else slice(None) for arg in self.arguments)
+        fst = [0] * size if n_observed == 0 else [0]
+        table = (self.table[None, ..., None])[(fst,) + obs_idx + ([0],)]
+        table = table.reshape((table.shape[0], -1))
+        table = table / np.sum(table, axis=1, keepdims=True)
+        not_observed = set(self.scope) - set(observed.columns)
+        rand_shape = tuple(self.table.shape[i] for i, arg in enumerate(self.arguments) if arg in not_observed)
+        rand_idx = multinomial(p=table)
+
+        result = np.asarray(np.unravel_index(indices=rand_idx, dims=rand_shape))
+        return pd.DataFrame(data=result.T, columns=[arg for arg in self.arguments if arg in not_observed])
+
 
     @methoddispatch
     def __mul__(self, other):
         assert type(other) == TableFactor
         assert self.arguments == other.arguments
-        result = TableFactor(self.arguments, self.scope + other.scope)
+        result = TableFactor(self.arguments, self.scope + other.scope, value_mapping=self.value_mapping)
         result.table = self.table * other.table
         return result
 
@@ -228,7 +284,7 @@ class TableFactor(Factor):
 
         # here we have to correctly handle 0 entries in the denominator factor
         old_err_state = np.seterr(divide='ignore', invalid='ignore')
-        result = TableFactor(self.arguments, self.scope + other.scope)
+        result = TableFactor(self.arguments, self.scope + other.scope, value_mapping=self.value_mapping)
         result.table = self.table / other.table
         result.table[np.isinf(result.table)] = 0.
         result.table[np.isnan(result.table)] = 0.
@@ -240,13 +296,7 @@ class TableFactor(Factor):
     def _(self, other):
         return deepcopy(self)
 
-    def fit(self, data, n_values=None, value_mapping=None, already_transformed=False):
-        if value_mapping is None:
-            value_mapping = dataframe_value_mapping(data)
-
-        if not already_transformed:
-            data = encode_dataframe(data, value_mapping)
-
+    def _fit(self, data, n_values=None):
         assert isinstance(data, pd.DataFrame)
         data = data[self.scope].values
         if n_values is None:
@@ -259,7 +309,6 @@ class TableFactor(Factor):
 
         semicolon = slice(None, None, None)
         self.table = hist[tuple(semicolon if name in self.scope else np.newaxis for name in self.arguments)]
-        self._value_mapping = value_mapping
         return self
 
     def _repr_html_(self):
@@ -267,4 +316,7 @@ class TableFactor(Factor):
             return 'TableFactor(%s)' % ', '.join(map(str, self.scope))
         squeezed = np.squeeze(self.table)
         assert squeezed.ndim == len(self.scope)
-        return ListTable(squeezed, self.scope, value_mapping=invert_value_mapping(self.value_mapping))._repr_html_()
+        return ListTable(squeezed, self.scope, value_mapping=self.value_mapping)._repr_html_()
+
+
+

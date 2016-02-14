@@ -12,7 +12,8 @@ void gen_multinomial(PyObject *arr, PyObject *acc_prob_arr) {
     std::default_random_engine re(rand());
     std::uniform_real_distribution<double> unif(0, 1);
 
-    ndarray<double> result(arr), acc_prob(acc_prob_arr);
+    ndarray<double> acc_prob(acc_prob_arr);
+    ndarray<int> result(arr);
     assert(result.nd() == 1);
     assert(acc_prob.nd() == 2);
     assert(acc_prob.shape(0) == result.shape(0));

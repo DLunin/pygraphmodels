@@ -24,10 +24,8 @@ class ListTable(list):
         table = np.asarray(table)
         self.append(names + ['Prob.'])
         for v in product(*list(map((lambda x: list(range(x))), table.shape))):
-            if value_mapping is not None:
-                line = [value_mapping[name][val] for name, val in zip(names, v)]
-            else:
-                line = list(v)
+            line_dict = value_mapping.inverse_transform(dict(zip(names, v)))
+            line = [line_dict[name] for name in names]
             self.append(line + ["%0.3f" % table[v]])
 
     def _repr_html_(self):
