@@ -86,11 +86,15 @@ g.mpld3-xaxis, g.mpld3-yaxis {
     fig = plt.figure(figsize=(12, 8))
     ax = plt.gca()
 
+    nodes = []
+    edges = list(g.edges())
+
     layout = nx.spring_layout(g, iterations=10)
 
     points = []
     labels = []
     for node, (x, y) in layout.items():
+        nodes.append(node)
         points.append((x, y))
         try:
             try:
@@ -104,7 +108,7 @@ g.mpld3-xaxis, g.mpld3-yaxis {
     ax.set_xlim(min(points_x) - 0.08, max(points_x) + 0.08)
     ax.set_ylim(min(points_y) - 0.08, max(points_y) + 0.08)
 
-    for src, dst in g.edges():
+    for src, dst in edges:
         src_pos = layout[src]
         dst_pos = layout[dst]
         arr_pos = dst_pos - 0.15*(dst_pos - src_pos)
@@ -115,7 +119,7 @@ g.mpld3-xaxis, g.mpld3-yaxis {
     ax.plot(points_x, points_y, 'o', color='lightgray',
                      mec='k', ms=20, mew=1, alpha=1.)
 
-    for text, x, y in zip(g.nodes(), points_x, points_y):
+    for text, x, y in zip(nodes, points_x, points_y):
         ax.text(x, y, text, horizontalalignment='center', verticalalignment='center')
 
     pts = ax.plot(points_x, points_y, 'o', color='lightgray',
