@@ -5,9 +5,11 @@ from itertools import combinations
 
 
 def discrete_mutual_information(x, y):
-    def make_factor(data, arguments):
+    def make_factor(data, arguments, leak=1e-9):
         factor = TableFactor(arguments, list(data.columns))
         factor.fit(data)
+        factor.table += leak
+        factor.normalize(*factor.scope, copy=False)
         return factor
 
     xy = pd.concat([x, y], axis=1)

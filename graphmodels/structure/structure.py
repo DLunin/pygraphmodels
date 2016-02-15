@@ -1,7 +1,7 @@
 from ..dgm import DGM
 import networkx as nx
 from itertools import combinations, repeat
-from .information import discrete_mutual_information
+from ..information import discrete_mutual_information
 
 
 def chow_liu(data, mi_estimator=discrete_mutual_information):
