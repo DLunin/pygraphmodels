@@ -17,9 +17,13 @@ class IdentityValueMapping:
         return self
 
     def transform(self, data, copy=True):
+        if data is None:
+            return None
         return data.copy() if copy else data
 
     def inverse_transform(self, data, copy=True):
+        if data is None:
+            return None
         return data.copy() if copy else data
 
 

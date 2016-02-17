@@ -50,7 +50,7 @@ class NaiveInference(InferenceStrategy):
 
 
 class SumProductInference(InferenceStrategy):
-    def __init__(self, gm, ordering_strategy):
+    def __init__(self, gm, ordering_strategy=random_ordering):
         InferenceStrategy.__init__(self, gm)
         self.ordering_strategy = ordering_strategy
 

@@ -113,8 +113,8 @@ g.mpld3-xaxis, g.mpld3-yaxis {
         dst_pos = layout[dst]
         arr_pos = dst_pos - 0.15*(dst_pos - src_pos)
 
-        ax.plot(*list(zip(src_pos, dst_pos)), c='grey')
-        ax.plot(*list(zip(arr_pos, dst_pos)), c='black', alpha=.5, linewidth=5)
+        ax.plot(*list(zip(src_pos, dst_pos)), color='grey')
+        ax.plot(*list(zip(arr_pos, dst_pos)), color='black', alpha=.5, linewidth=5)
 
     ax.plot(points_x, points_y, 'o', color='lightgray',
                      mec='k', ms=20, mew=1, alpha=1.)
