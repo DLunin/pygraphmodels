@@ -61,7 +61,18 @@ public:
         Py_INCREF(obj);
         PyObject *s_temp = PyUnicode_FromString("__array_struct__");
         _array_struct = PyObject_GetAttr(obj, s_temp);
-        _arr = static_cast<PyArrayInterface*>(PyCapsule_GetPointer(_array_struct, PyCapsule_GetName(_array_struct))); 
+#ifdef PYTHON2
+        if (PyCObject_Check(_array_struct)) {
+            _arr = static_cast<PyArrayInterface*>(PyCObject_AsVoidPtr(_array_struct));
+        }
+        else {
+#endif
+            auto capsule_name = PyCapsule_GetName(_array_struct);
+            auto capsule_ptr = PyCapsule_GetPointer(_array_struct, capsule_name);
+            _arr = static_cast<PyArrayInterface*>(capsule_ptr);
+#ifdef PYTHON2
+        }
+#endif
 
         assert(_arr->two == 2);
         if (!_arr->strides) {
