@@ -27,6 +27,20 @@ def discrete_mutual_information(x, y):
         return +np.inf
     return result
 
+def factor_mutual_information(factor_xy, x, y):
+    scope = set(factor_xy.scope)
+    factor_x = factor_xy.marginalize(*[var for var in scope if var not in x], copy=True)
+    factor_y = factor_xy.marginalize(*[var for var in scope if var not in y], copy=True)
+    factor_xy = factor_xy.marginalize(*[var for var in scope if var not in x and var not in y], copy=True)
+
+    part1 = factor_xy.table.flatten()
+    part2 = (factor_xy / (factor_x * factor_y).normalize(*arguments, copy=False)).table.flatten()
+
+    result = np.sum(part1 * np.log(part2))
+    if np.isnan(result):
+        return +np.inf
+    return result
+
 
 def information_matrix(data, mi_estimator=discrete_mutual_information):
     m = len(data.columns)
