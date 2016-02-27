@@ -220,6 +220,9 @@ class TableFactor(Factor):
     def _pdf(self, args):
         return self.table[tuple(arg if arg is not None else 0 for arg in args)]
 
+    def n_values(self, var):
+        return self.table.shape[self.arguments.index(var)]
+
     @copy_option(default=True)
     def _observe(self, kwargs):
         indices = [slice(None, None, None)] * len(self.arguments)
