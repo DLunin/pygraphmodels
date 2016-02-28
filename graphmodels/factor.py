@@ -221,6 +221,7 @@ class TableFactor(Factor):
         return self.table[tuple(arg if arg is not None else 0 for arg in args)]
 
     def n_values(self, var):
+        assert var in self.scope
         return self.table.shape[self.arguments.index(var)]
 
     @copy_option(default=True)

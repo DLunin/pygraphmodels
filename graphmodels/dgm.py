@@ -137,9 +137,6 @@ class DGM(nx.DiGraph):
     def draw(self):
         return pretty_draw(self)
 
-    def values(self, var):
-        return list(self.node[var]['cpd'].value_mapping[var].keys())
-
     @staticmethod
     def read(filename):
         name, ext = os.path.splitext(filename)
