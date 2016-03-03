@@ -1,0 +1,160 @@
+\documentclass{article}
+\usepackage[T2A]{fontenc}
+\usepackage[utf8]{inputenc}
+%\usepackage[russian]{babel}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{mathtools}
+\usepackage{algorithm}
+\usepackage{algorithmicx}
+\usepackage{algpseudocode}
+
+\DeclarePairedDelimiter\abs{\lvert}{\rvert}%
+\DeclarePairedDelimiter\norm{\lVert}{\rVert}%
+
+% Swap the definition of \abs* and \norm*, so that \abs
+% and \norm resizes the size of the brackets, and the 
+% starred version does not.
+\makeatletter
+\let\oldabs\abs
+\def\abs{\@ifstar{\oldabs}{\oldabs*}}
+%
+\let\oldnorm\norm
+\def\norm{\@ifstar{\oldnorm}{\oldnorm*}}
+\makeatother
+%
+
+\providecommand\given{} % so it exists
+\newcommand\SetSymbol[1][]{
+	\nonscript\,#1\vert \allowbreak \nonscript\,\mathopen{}}
+
+\DeclarePairedDelimiterX\Set[1]{\lbrace}{\rbrace}%
+{ \renewcommand\given{\SetSymbol[\delimsize]} #1 }
+
+\newcommand{\pd}[2]{
+	\frac{\partial{#1}}{\partial{#2}}
+}
+
+\newcommand{\ppd}[1]{
+	\frac{\partial}{\partial{#1}}
+}
+
+\newcommand{\mean}[3]{
+	\frac{1}{#2} \sum_{#1 = 1}^{#2}{#3}
+}
+
+\newcommand{\score}[1]{
+	\textrm{score}(#1)
+}
+
+\newcommand{\pa}[1]{Pa(#1)}
+
+\newcommand{\affnodes}[1]{
+	\textrm{Aff}(#1)	
+}
+
+\newcommand{\addedge}[1]{
+	\textrm{Add}(#1)	
+}
+
+\newcommand{\rmedge}[1]{
+	\textrm{Del}(#1)
+}
+
+\newcommand{\revedge}[1]{
+	\textrm{Rev}(#1)
+}
+
+\newcommand{\bigO}[1]{
+	\mathcal{O}{(#1)}
+}
+
+\newcommand{\graph}[1]{
+	\mathcal{#1}
+}
+
+\newcommand{\var}[1]{{\ttfamily#1}}% variable
+
+\newcommand{\ops}[1]{
+	\textrm{ops}(#1)
+}
+
+\newcommand{\argmin}{\operatornamewithlimits{argmin}}
+\newcommand{\argmax}{\operatornamewithlimits{argmax}}
+
+\author{Dmitry Lunin}
+\title{Bayesian Networks}
+\begin{document}
+\maketitle
+	
+\section{Structure Learning}
+\subsection{Introduction}
+
+\subsection{Score-based approach}
+\paragraph{Description} The idea of score-based approach is to associate a Bayesian network graph with a score, and then maximize it. Since the number of such graphs is very large, greedy optimization methods are often used.
+\subsubsection{Decomposable scores}
+A score is decomposable if it can be represented as a sum of scores of graph nodes: $$ \score{\graph{G}} = \sum_i{\score{X_i}} $$
+A decomposable score allows for fast recalculation of graph score after local operations on graph. 
+\subsubsection{Local operations}
+
+\theoremstyle{definition}
+\newtheorem*{local.operation}{Def}
+\begin{local.operation}
+	We call a graph operation \textbf{local} if it affects edges pointing to a constant number of nodes. We will denote the set of affected nodes as $\affnodes{\textrm{op}}$.
+\end{local.operation}
+
+\theoremstyle{definition}
+\newtheorem*{operation.score}{Def}
+\begin{operation.score}
+	The \textbf{score} of a graph operation is defined as the difference between the graph scores after and before applying the operation.
+	$$ \score{\textrm{op}} = \score{\graph{G}_{\textrm{after}}} - \score{\graph{G}_{\textrm{before}}} $$
+\end{operation.score}
+
+\paragraph{Edge Addition}
+Add edge from node $u$ to node $v$. Denoted as $\addedge{u, v}$. $$ \affnodes{\addedge{u, v}} = \Set{v} $$
+\paragraph{Edge Deletion}
+Delete edge from node $u$ to node $v$. Denoted as $\rmedge{u, v}$. $$ \affnodes{\rmedge{u, v}} = \Set{v} $$
+\paragraph{Edge Reversal}
+Reverse edge from node $u$ to node $v$. Denoted as $\revedge{u, v}$. $$ \affnodes{\revedge{u, v}} = \Set{u, v} $$
+
+\subsubsection{Speed concerns}
+The most expensive operation in the local search is the computation of $\score{X_i}$. Hence, we want to minimize the number of such computations.
+
+\subsection{Greedy Local Search}
+\subsubsection{Algorithm description}
+At each step of the algorithm, we choose the local operation with maximal score and apply it. The algorithm terminates where there are no operations that increase the score. That means that it has reached a local optimum (relative to the given score and local operations set).
+
+\subsubsection{Speed optimization}
+\paragraph{Finding maximum score} In order to find an operation with maximal score efficiently, we can use data structures such as a binary heap. That way, we can get an operation with maximum score in $\bigO{N_{op}}$ time.
+
+However, when we apply the operation, several problems arise. Firstly, some operations in the heap start violating acyclity constraints. This problem can be solved by checking for aclyclity when the operation is retrieved from the heap. 
+
+Secondly, the score of some operations changes. The number of such operations is $\bigO{K}$. Hence removing such operations from the heap would require $\bigO{KN_{op}}$ time. 
+
+\begin{algorithm}[t]
+	\caption{Greedy Local Search algorithm}\label{euclid}
+	\begin{algorithmic}[1]
+		\Procedure{GreedyLocalSearch}{$\graph{G}_0, \score{\cdot}, \ops{\cdot}$}
+		\State $\graph{G} \gets \graph{G}_0$
+		\While{$\exists o \in \ops{\graph{G}}: \score{o} > 0$}
+		\State $\displaystyle o \gets \argmax_{o \in \ops{\graph{G}}} {\score{o}}$
+		\State $\graph{G} \gets o(\graph{G})$
+		\EndWhile
+		\State \textbf{return} $\graph{G}$
+		\EndProcedure
+	\end{algorithmic}
+\end{algorithm}
+
+
+\begin{thebibliography}{9}
+	
+	\bibitem{KollerFriedman}
+	Daphne Koller, Nir Friedman
+	\emph{Probabilistic Graphical Models: Principles and Techniques},
+	The MIT Press, Cambridge, Massachusetts,
+	2009.
+	
+\end{thebibliography}
+
+\end{document}
+
