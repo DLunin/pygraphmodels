@@ -3,6 +3,7 @@ from .misc import constant, dataframe_value_mapping
 import networkx as nx
 import pandas as pd
 import numpy as np
+from copy import copy, deepcopy
 from .formats import bif_parser
 import os.path
 from itertools import repeat, combinations
@@ -96,6 +97,16 @@ class DGM(nx.DiGraph):
             self.value_mapping = kwargs['value_mapping']
         else:
             self.value_mapping = None
+
+    def compose(self, other):
+        result = nx.compose(self, other)
+        new_arguments = set()
+        for factor in result.factors:
+            new_arguments.update(set(factor.arguments))
+        new_arguments = list(new_arguments)
+        for factor in result.factors:
+            factor.set_arguments(new_arguments)
+        return result
 
     def add_argument(self, argument):
         for factor in self.factors:

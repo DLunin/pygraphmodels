@@ -236,6 +236,17 @@ class TableFactor(Factor):
         self.table = self.table.reshape(self.table.shape + (1,))
         return self
 
+    @copy_option(default=False)
+    def set_arguments(self, new_arguments):
+        old_n = len(self.arguments)
+        new_n = len(new_arguments)
+        table = self.table.reshape(self.table.shape + (1,)*(new_n - old_n))
+        old_arguments = self.arguments + [arg for arg in new_arguments if arg not in self.arguments]
+        self.table = np.transpose(table, [old_arguments.index(arg) for arg in new_arguments])
+        self.arguments = new_arguments
+        self.scope = [arg for arg in self.arguments if arg in self.scope]
+        return self
+
     def _pdf(self, args):
         return self.table[tuple(arg if arg is not None else 0 for arg in args)]
 
