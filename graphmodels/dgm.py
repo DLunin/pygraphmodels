@@ -134,6 +134,19 @@ class DGM(nx.DiGraph):
     def factor(self, var):
         return self.node[var]['cpd']
 
+    def rename_variable(self, old_name, new_name):
+        for node, node_data in self.nodes(data=True):
+            node_data['cpd'].rename_variable(old_name, new_name)
+        if self.value_mapping is not None:
+            self.value_mapping.rename_variable(old_name, new_name)
+        self.add_node(new_name, attr_dict=self.node[old_name])
+        for pred in self.predecessors(old_name):
+            self.add_edge(pred, new_name, attr_dict=self.edge[pred][old_name])
+        for succ in self.successors(old_name):
+            self.add_edge(new_name, succ, attr_dict=self.edge[old_name][succ])
+        self.remove_node(old_name)
+        return self
+
     def draw(self):
         return pretty_draw(self)
 

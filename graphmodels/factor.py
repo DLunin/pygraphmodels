@@ -26,11 +26,22 @@ class IdentityValueMapping:
             return None
         return data.copy() if copy else data
 
+    def rename_variable(self, old_name, new_name):
+        pass
+
 
 class DictValueMapping:
     def __init__(self, mapping=None):
         self.mapping = mapping
         self.inverse_mapping = invert_value_mapping(self.mapping)
+
+    def rename_variable(self, old_name, new_name):
+        if old_name in self.mapping:
+            self.mapping[new_name] = self.mapping[old_name]
+            self.inverse_mapping[new_name] = self.inverse_mapping[old_name]
+            del self.mapping[old_name]
+            del self.inverse_mapping[old_name]
+        return self
 
     @property
     def fitted(self):
@@ -139,6 +150,14 @@ class Factor(object):
         result = self._rvs(size=size, observed=observed)
         return self.value_mapping.inverse_transform(result)
 
+    @copy_option(default=False)
+    def rename_variable(self, old_name, new_name):
+        self.arguments[self.arguments.index(old_name)] = new_name
+        if old_name in self.scope:
+            self.scope[self.scope.index(old_name)] = new_name
+        self.value_mapping.rename_variable(old_name, new_name)
+        return self
+
     def __len__(self):
         return len(self.scope)
 
@@ -156,7 +175,7 @@ class IdentityFactor(object):
     def __mul__(self, other):
         return deepcopy(other)
 
-    def copy(self):
+    def __copy__(self):
         return IdentityFactor(copy(self.arguments))
 
     @property
@@ -202,8 +221,8 @@ class TableFactor(Factor):
         Factor.__init__(self, arguments, scope, value_mapping=value_mapping)
         self.table = None
 
-    def copy(self):
-        result = TableFactor(copy(self.arguments), copy(self.scope), value_mapping=self.value_mapping)
+    def __copy__(self):
+        result = TableFactor(copy(self.arguments), copy(self.scope), value_mapping=copy(self.value_mapping))
         result.table = np.copy(self.table)
         return result
 
