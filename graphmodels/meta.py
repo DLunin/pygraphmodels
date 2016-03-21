@@ -1,6 +1,6 @@
 from singledispatch import singledispatch, update_wrapper
 from functools import wraps
-from copy import deepcopy
+from copy import deepcopy, copy
 
 
 def methoddispatch(func):
@@ -21,7 +21,7 @@ def copy_option(default=False):
         def new_f(self, *args, **kwargs):
             if 'copy' in kwargs and kwargs['copy']:
                 del kwargs['copy']
-                return f(self.copy(), *args, **kwargs)
+                return f(copy(self), *args, **kwargs)
             if 'copy' in kwargs:
                 del kwargs['copy']
                 return f(self, *args, **kwargs)

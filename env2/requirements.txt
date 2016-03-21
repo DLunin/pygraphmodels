@@ -1,0 +1,9 @@
+networkx
+matplotlib
+pystache
+mpld3
+jinja2
+pytest
+singledispatch
+pandas
+ply

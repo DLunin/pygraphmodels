@@ -4,6 +4,7 @@ from .misc import constant, invert_value_mapping, dataframe_value_mapping, extra
 from .multinomial import multinomial
 from itertools import repeat
 from copy import deepcopy, copy
+
 import numpy as np
 import pandas as pd
 
@@ -34,6 +35,9 @@ class DictValueMapping:
     def __init__(self, mapping=None):
         self.mapping = mapping
         self.inverse_mapping = invert_value_mapping(self.mapping)
+
+    def values(self, var):
+        return list(self.mapping[var].keys())
 
     def rename_variable(self, old_name, new_name):
         if old_name in self.mapping:
@@ -254,6 +258,12 @@ class TableFactor(Factor):
         assert var in self.scope
         return self.table.shape[self.arguments.index(var)]
 
+    def values(self, var):
+        if self.value_mapping is not None:
+            return self.value_mapping.values(var)
+        else:
+            return list(range(self.n_values(var)))
+
     @copy_option(default=True)
     def _observe(self, kwargs):
         indices = [slice(None, None, None)] * len(self.arguments)
@@ -356,5 +366,13 @@ class TableFactor(Factor):
         assert squeezed.ndim == len(self.scope)
         return ListTable(squeezed, self.scope, value_mapping=self.value_mapping)._repr_html_()
 
-
-
+    def __eq__(self, other):
+        if not isinstance(other, TableFactor):
+            return False
+        if self.arguments != other.arguments:
+            return False
+        if self.scope != other.scope:
+            return False
+        if self.table.shape != other.table.shape:
+            return False
+        return np.allclose(self.table, other.table, rtol=1e-8)
