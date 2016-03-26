@@ -1,0 +1,136 @@
+\documentclass{article}
+\usepackage[T2A]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{mathtools}
+\usepackage{algorithm}
+\usepackage{algorithmicx}
+\usepackage{algpseudocode}
+
+\DeclarePairedDelimiter\abs{\lvert}{\rvert}%
+\DeclarePairedDelimiter\norm{\lVert}{\rVert}%
+
+% Swap the definition of \abs* and \norm*, so that \abs
+% and \norm resizes the size of the brackets, and the 
+% starred version does not.
+\makeatletter
+\let\oldabs\abs
+\def\abs{\@ifstar{\oldabs}{\oldabs*}}
+%
+\let\oldnorm\norm
+\def\norm{\@ifstar{\oldnorm}{\oldnorm*}}
+\makeatother
+%
+
+\providecommand\given{} % so it exists
+\newcommand\SetSymbol[1][]{
+	\nonscript\,#1\vert \allowbreak \nonscript\,\mathopen{}}
+
+\DeclarePairedDelimiterX\Set[1]{\lbrace}{\rbrace}%
+{ \renewcommand\given{\SetSymbol[\delimsize]} #1 }
+
+\newcommand{\pd}[2]{
+	\frac{\partial{#1}}{\partial{#2}}
+}
+
+\newcommand{\ppd}[1]{
+	\frac{\partial}{\partial{#1}}
+}
+
+\newcommand{\mean}[3]{
+	\frac{1}{#2} \sum_{#1 = 1}^{#2}{#3}
+}
+
+\newcommand{\score}[1]{
+	\textrm{score}(#1)
+}
+
+\newcommand{\pa}[1]{Pa(#1)}
+
+\newcommand{\affnodes}[1]{
+	\textrm{Aff}(#1)	
+}
+
+\newcommand{\addedge}[1]{
+	\textrm{Add}(#1)	
+}
+
+\newcommand{\rmedge}[1]{
+	\textrm{Del}(#1)
+}
+
+\newcommand{\revedge}[1]{
+	\textrm{Rev}(#1)
+}
+
+\newcommand{\bigO}[1]{
+	\mathcal{O}{(#1)}
+}
+
+\newcommand{\graph}[1]{
+	\mathcal{#1}
+}
+
+
+\newcommand{\var}[1]{{\ttfamily#1}}% variable
+
+\newcommand{\ops}[1]{
+	\textrm{ops}(#1)
+}
+
+\newcommand{\argmin}{\operatornamewithlimits{argmin}}
+\newcommand{\argmax}{\operatornamewithlimits{argmax}}
+
+\author{Dmitry Lunin}
+\title{EM + RVR for structure learning}
+\begin{document}
+\maketitle
+	
+\section{RVR for entropy estimation}
+\paragraph{Graph scores and mutual information} Often computing graph scores for structure learning problem requires mutual information estimation. For example, BIC score. The reason behind this is that in discrete case, likelihood of a Bayesian network structure can be computed using mutual information:
+\begin{equation}
+	log p(\graph{G}|X) = N \sum_{i=1}^M{I(X_i; Pa(X_i))} - N \sum_{i=1}^M{H(X_i)}  
+\end{equation}
+where $N$ is the number of data points, $M$ is the number of variables.
+\paragraph{Entropy} 
+Mutual information, on the other hand, can be computed via entropy:
+\begin{equation}
+	I(X; Y) = H(X) + H(Y) - H(X, Y)
+\end{equation}
+
+\paragraph{RVR} It is possible to learn to predict entropy of a subset of variables using Relevance Vector Machine for regression (RVR). It can predict entropy with decent accuracy (however SVR performs better). Here we need to estimate the probability disribution on entropies, so we use RVR instead of SVR.
+
+\section{EM for structure learning}
+\paragraph{Idea} The Bayesian network graph ($\graph{G}$) is the parameter we want to estimate, all the entropies between variables ($H$) are hidden variables in the EM algorithm.
+$X$ is the training dataset of the structure learning algorithm.
+\paragraph{E-step}
+In the expectation step, we have to estimate $p(H|X, \graph{G})$. 
+\begin{enumerate}
+	\item Fit the parameters of the Bayesian network with structure $\graph{G}_{old}$.
+	\item Build the training data by running inference on random subsets of variables, then calculating entropy of the resulting distribution.
+	\item Train the RVR on the training data from step 2. 
+\end{enumerate}
+Now we have a RVR model which can predict $q(H) = p(H|X, \graph{G}_{old})$.
+\paragraph{M-step}
+The goal of the M-step is to maximize
+\begin{equation}
+E_{q(H)}[\log p(X, H| \graph{G})] \to \max_{\graph{G}}
+\end{equation}
+\begin{equation}
+E_{q(H)}[\log p(X | H, \graph{G})] + E_{q(H)}[\log p(H|\graph{G})] \to \max_{\graph{G}}
+\end{equation}
+$\log p(X| H, \graph{G})$ can be easily computed (see eq. (1)). 
+
+\begin{thebibliography}{9}
+	
+	\bibitem{KollerFriedman}
+	Daphne Koller, Nir Friedman
+	\emph{Probabilistic Graphical Models: Principles and Techniques},
+	The MIT Press, Cambridge, Massachusetts,
+	2009.
+	
+\end{thebibliography}
+
+\end{document}
+
