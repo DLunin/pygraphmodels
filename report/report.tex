@@ -125,11 +125,11 @@ The most expensive operation in the local search is the computation of $\score{X
 At each step of the algorithm, we choose the local operation with maximal score and apply it. The algorithm terminates where there are no operations that increase the score. That means that it has reached a local optimum (relative to the given score and local operations set).
 
 \subsubsection{Speed optimization}
-\paragraph{Finding maximum score} In order to find an operation with maximal score efficiently, we can use data structures such as a binary heap. That way, we can get an operation with maximum score in $\bigO{N_{op}}$ time.
+\paragraph{Finding maximum score} In order to find an operation with maximal score efficiently, we can use data structures such as a binary heap. That way, we can retrieve an operation with maximum score in $\bigO{1}$ time.
 
-However, when we apply the operation, several problems arise. Firstly, some operations in the heap start violating acyclity constraints. This problem can be solved by checking for aclyclity when the operation is retrieved from the heap. 
+However, when we apply the operation, several problems arise. Firstly, some operations in the heap start violating acyclity constraints. This problem can be solved by checking for acyclity when the operation is retrieved from the heap. 
 
-Secondly, the score of some operations changes. The number of such operations is $\bigO{K}$. Hence removing such operations from the heap would require $\bigO{KN_{op}}$ time. 
+Secondly, the score of some operations changes. The number of such operations is $\bigO{K}$. Hence removing and re-inserting them to the heap would require $\bigO{K \log{N_{op}}}$ time. 
 
 \begin{algorithm}[t]
 	\caption{Greedy Local Search algorithm}\label{euclid}
@@ -145,6 +145,36 @@ Secondly, the score of some operations changes. The number of such operations is
 	\end{algorithmic}
 \end{algorithm}
 
+\subsection{Graph scores and mutual information}
+\paragraph{Mutual Information} Mutual information is defined as:
+\begin{equation}
+I(X; Y) = \int_{x \in X}{\int_{y \in Y}{p(x, y)\,\log \frac{p(x,y)}{p(x)\,p(y)}\,dx\,dy}}
+\end{equation}
+It can also be expressed as $KL$-divergence between distributions $p(x, y)$ and $p(x)p(y)$:
+\begin{equation}
+I(X; Y) = D_{KL}(p(x, y)\,||\,p(x)p(y))
+\end{equation}
+Note that $p(x, y) = p(x)p(y)$, and therefore $I(X; Y) = 0$, when $X$ is independent of $Y$. 
+
+\paragraph{Application} Often computing graph scores for structure learning problem requires mutual information estimation. For example, BIC score. The reason behind this is that in discrete case, likelihood of a Bayesian network structure can be computed using mutual information:
+\begin{equation}
+\log p(\graph{G}|X) = N \sum_{i=1}^M{I(X_i; Pa(X_i))} - N \sum_{i=1}^M{H(X_i)}  
+\end{equation}
+where $N$ is the number of data points, $M$ is the number of variables.
+\paragraph{Entropy} 
+Mutual information, on the other hand, can be computed via entropy:
+\begin{equation}
+\label{eq:mi_via_entropy}
+I(X; Y) = H(X) + H(Y) - H(X, Y)
+\end{equation}
+Where $H(X)$ is Shannon entropy:
+\begin{equation}
+H(X) = \int_{x \in X}{p(x)\,\log p(x)\,dx}
+\end{equation}
+We use Equation \ref{eq:mi_via_entropy} for computing mutual information because it allows us to cache $H(X)$ instead of $I(X; Y)$; since it can be used for computing several $I(X; Y)$, this scheme is more efficient.
+
+\section{Testing and benchmarking}
+\subsection{Tiling Bayesian networks \cite{Tsamardinos2006}}
 
 \begin{thebibliography}{9}
 	
@@ -153,6 +183,11 @@ Secondly, the score of some operations changes. The number of such operations is
 	\emph{Probabilistic Graphical Models: Principles and Techniques},
 	The MIT Press, Cambridge, Massachusetts,
 	2009.
+	
+	\bibitem{Tsamardinos2006}
+	Ioannis Tsamardinos, Alexander Statnikov, Laura E. Brown, Constantin F. Aliferis
+	\emph{Generating realistic large bayesian networks by tiling},
+	2006.
 	
 \end{thebibliography}
 

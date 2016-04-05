@@ -83,7 +83,7 @@ g.mpld3-xaxis, g.mpld3-yaxis {
 }
     """
 
-    fig = plt.figure(figsize=(12, 8))
+    fig = plt.figure(figsize=(8, 6))
     ax = plt.gca()
 
     nodes = []

@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 from itertools import combinations
 
+
 def discrete_entropy(x):
     def make_factor(data, arguments, leak=1e-9):
         factor = TableFactor(arguments, list(data.columns))
@@ -14,6 +15,7 @@ def discrete_entropy(x):
     factor_x = make_factor(x, arguments).normalize(*arguments)
     prob = factor_x.table.flatten()
     return -np.sum(prob * np.log(prob))
+
 
 def discrete_mutual_information(x, y):
     if x.shape[1] == 0 or y.shape[1] == 0:
@@ -40,6 +42,7 @@ def discrete_mutual_information(x, y):
     if np.isnan(result):
         return +np.inf
     return result
+
 
 def information_matrix(data, mi_estimator=discrete_mutual_information):
     m = len(data.columns)

@@ -90,7 +90,7 @@
 \section{RVR for entropy estimation}
 \paragraph{Graph scores and mutual information} Often computing graph scores for structure learning problem requires mutual information estimation. For example, BIC score. The reason behind this is that in discrete case, likelihood of a Bayesian network structure can be computed using mutual information:
 \begin{equation}
-	log p(\graph{G}|X) = N \sum_{i=1}^M{I(X_i; Pa(X_i))} - N \sum_{i=1}^M{H(X_i)}  
+	\log p(\graph{G}|X) = N \sum_{i=1}^M{I(X_i; Pa(X_i))} - N \sum_{i=1}^M{H(X_i)}  
 \end{equation}
 where $N$ is the number of data points, $M$ is the number of variables.
 \paragraph{Entropy} 
