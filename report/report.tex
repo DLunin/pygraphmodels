@@ -8,6 +8,7 @@
 \usepackage{algorithm}
 \usepackage{algorithmicx}
 \usepackage{algpseudocode}
+\usepackage{tikz}
 
 \DeclarePairedDelimiter\abs{\lvert}{\rvert}%
 \DeclarePairedDelimiter\norm{\lVert}{\rVert}%
@@ -86,9 +87,27 @@
 \title{Bayesian Networks}
 \begin{document}
 \maketitle
-	
+
+\section{Overview}
+\subsection{Definition}
+
+\subsection{Workflow}
+\begin{tikzpicture}[line width=2pt]
+\draw (0,0) node [above right]  {$A$} -- (1,0);
+
+\end{tikzpicture}
+
 \section{Structure Learning}
 \subsection{Introduction}
+\paragraph{The task} The aim of structure learning is to identify the Bayesian network structure (i.e. the graph) using data. 
+
+\paragraph{Applications}
+
+The first application is knowledge discovery. We can use structure learning to find out (in)dependencies between variables in the data, or test our prior assumptions about them, obtaining better understanding of the data and the domain of knowledge. 
+
+The second application is off-the-shelf machine learning. In order to apply Bayesian network methods to a problem, firstly one needs to build a Bayesian network, which may require significant effort and domain expertise. On the other hand, many machine learning methods, for example random forests can be applied immediately, yielding adequate results which can be improved later by fine-tuning parameters. Advanced structure learning methods make it possible to apply such workflow to the Bayesian network methods.
+
+\paragraph{Approaches} There are two main approaches to the structure learning task. The first, constraint-based approach, is based on doing statistical tests to obtain conditional independence statements, and build a Bayesian network that satisfies them. The point of the second approach, the score-based structure learning, is to introduce a metric of compatibility of a Bayesian network with the data, and then optimize it over the space of all Bayesian network structures. In this work, we focus on the score-based approach.
 
 \subsection{Score-based approach}
 \paragraph{Description} The idea of score-based approach is to associate a Bayesian network graph with a score, and then maximize it. Since the number of such graphs is very large, greedy optimization methods are often used.
@@ -172,6 +191,8 @@ Where $H(X)$ is Shannon entropy:
 H(X) = \int_{x \in X}{p(x)\,\log p(x)\,dx}
 \end{equation}
 We use Equation \ref{eq:mi_via_entropy} for computing mutual information because it allows us to cache $H(X)$ instead of $I(X; Y)$; since it can be used for computing several $I(X; Y)$, this scheme is more efficient.
+
+
 
 \section{Testing and benchmarking}
 \subsection{Tiling Bayesian networks \cite{Tsamardinos2006}}
