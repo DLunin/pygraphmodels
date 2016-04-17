@@ -138,7 +138,7 @@ public:
     }
 
     const int nd() const {
-        return shape.size();
+        return _shape.size();
     }
 
     const array_1d<int> shape() const {
@@ -154,6 +154,10 @@ public:
     }
 
     T& operator[](const array_1d<int>& idx) {
+        //cout << idx << endl;
+        //cout << _stride << endl;
+        //cout << _shape << endl;
+        //cout << inner_product(idx.cbegin(), idx.cend(), _stride.cbegin(), 0) << " < " << size() << endl;
 #ifdef DEBUG
         assert(inner_product(idx.cbegin(), idx.cend(), _stride.cbegin(), 0) < size());
         assert(inner_product(idx.cbegin(), idx.cend(), _stride.cbegin(), 0) >= 0);
@@ -202,9 +206,15 @@ public:
 private:
     void _init_stride() const {
         const int n = _stride.size();
+
         const_cast<int&>(_stride(n-1)) = 1;
-        for (int i = 1; i < _shape.size(); i++)
-            const_cast<int&>(_stride(n-i-1)) = _stride(n-i) * shape(i);
+        for (int i = n-2; i >= 0; --i) {
+            const_cast<int&>(_stride(i)) = _stride(i+1) * shape(i+1);
+        }
+            
+        for (int i = 0; i < _shape.size(); i++)
+            if (_shape(i) == 1)
+                const_cast<int&>(_stride(i)) = 0;
     }
 
 private:
@@ -214,4 +224,46 @@ private:
 
 };
 
+template <typename T, typename Op>
+array_1d<T> elementwise_op(const array_1d<T>& lhs, const array_1d<T>& rhs, Op op) {
+#ifdef DEBUG
+    assert(lhs.size() == rhs.size());
 #endif
+    array_1d<T> result(lhs.size());
+    transform(lhs.cbegin(), lhs.cend(), rhs.cbegin(), result.begin(), op);
+    return result;
+}
+
+template <typename T>
+array_1d<T> operator*(const array_1d<T>& lhs, const array_1d<T>& rhs) {
+    return elementwise_op(lhs, rhs, multiplies<T>());
+}
+
+template <typename T, typename Op>
+array_nd<T> elementwise_op(const array_nd<T>& lhs, const array_nd<T>& rhs, Op op) {
+    array_1d<int> idx(lhs.nd());
+    array_1d<int> res_shape = elementwise_op(lhs.shape(), rhs.shape(), (const int& (*)(const int&, const int&))max<int>);  
+    array_nd<T> result(res_shape);
+    int n_steps = accumulate(res_shape.begin(), res_shape.end(), 1, multiplies<int>());
+    int nd = lhs.nd();
+    for (int i = 0; i < n_steps; i++) {
+        result[idx] = op(lhs[idx], rhs[idx]);
+        idx(nd-1) += 1;
+        for (int j = nd-1; j > 0; j--) {
+            if (idx(j) < res_shape(j)) break;
+            idx(j-1) += idx(j) / res_shape(j);
+            idx(j) = idx(j) % res_shape(j);
+        }
+    }
+    return result;
+}
+
+template <typename T>
+array_nd<T> operator*(const array_nd<T>& lhs, const array_nd<T>& rhs) {
+    return elementwise_op(lhs, rhs, multiplies<T>());
+}
+
+#endif
+
+
+
