@@ -35,6 +35,16 @@ public:
     array_1d(T* ptr, int n) : _ptr(ptr), _n(n), _is_view(true) { }
     array_1d(const T* ptr, int n) : _ptr(ptr), _n(n), _is_view(true) { }
 
+    array_1d(array_1d<T>&& arr) : _ptr(arr._ptr), _n(arr._n), _is_view(arr._is_view) {
+        cout << "move" << endl;
+    }
+
+    array_1d& operator=(const array_1d<T>& rhs) {
+        assert(size() == rhs.size());
+        std::copy(rhs.cbegin(), rhs.cend(), begin());
+        return *this;
+    }
+
     const int nd() const {
         return 1;
     }
@@ -99,6 +109,7 @@ public:
 private:
     T *_ptr;
     const int _n;
+public:
     const bool _is_view;
 };
 
@@ -111,6 +122,17 @@ ostream& operator<<(ostream& ostr, const array_1d<T>& arr) {
         ostr << arr(arr.size() - 1);
     ostr << "])";
     return ostr;
+}
+
+template <typename T>
+const bool operator<(const array_1d<T>& lhs, const array_1d<T>& rhs) {
+    assert(lhs.size() == rhs.size());
+    for (int i = 0; i < lhs.size(); i++)
+        if (lhs(i) < rhs(i))
+            return true;
+        else if (lhs(i) > rhs(i)) 
+            return false;
+    return false;
 }
 
 template <typename T>
