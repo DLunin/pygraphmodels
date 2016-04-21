@@ -258,6 +258,9 @@ public:
 
     virtual 
     const bool apply() = 0;
+
+    virtual 
+    const string str() = 0;
 };
 
 class AddEdge : public LocalOperation {
@@ -270,7 +273,7 @@ public:
     const double score() override {
         if (_graph.has_edge(from, to))
             return 0;
-
+        
         _graph.add_edge(from, to);
         if (!_graph.is_acyclic()) {
             _graph.remove_edge(from, to);
@@ -295,6 +298,11 @@ public:
             return false;   
         }
         return true;
+    }
+
+    virtual 
+    const string str() override {
+        return "AddEdge " + to_string(from) + " -> " + to_string(to);
     }
 
 private:
@@ -326,6 +334,11 @@ public:
             return false;
         _graph.remove_edge(from, to);
         return true;
+    }
+
+    virtual 
+    const string str() override {
+        return "RemoveEdge " + to_string(from) + " -> " + to_string(to);
     }
 
 private:
@@ -381,6 +394,11 @@ public:
         return true;
     }
 
+    virtual 
+    const string str() override {
+        return "ReverseEdge " + to_string(from) + " -> " + to_string(to);
+    }
+
 private:
     int from, to;
     DiGraph& _graph;
@@ -391,10 +409,8 @@ template <typename T, typename KeyOp, typename TKey>
 class Heap {
 public:
     template <typename Container>
-    Heap(const Container& container, int max_size, KeyOp key_f): _key_f(key_f), _arr(max_size), _keys(max_size), _size(container.cend() - container.cbegin()) {
+    Heap(const Container& container, int max_size, KeyOp key_f): _key_f(key_f), _arr(max_size), _size(container.cend() - container.cbegin()) {
         std::copy(container.cbegin(), container.cend(), _arr.begin());
-        for (int i = 0; i < _keys.size(); i++)
-            _keys(i) = key_f(_arr(i));
         for (int i = min(_size - 1, _size / 2 + 1); i >= 0; i--)
             _heapify(i);
     }
@@ -414,15 +430,14 @@ public:
     void _heapify(int i) {
         if (i >= _size) return;
         int largest = i;
-        if (_left(i) < _size && _keys(_left(i)) > _keys(largest)) {
+        if (_left(i) < _size && _key_f(_arr(_left(i))) > _key_f(_arr(largest))) {
             largest = _left(i);
         }
-        if (_right(i) < _size && _keys(_right(i)) > _keys(largest)) {
+        if (_right(i) < _size && _key_f(_arr(_right(i))) > _key_f(_arr(largest))) {
             largest = _right(i);
         }
         if (largest != i) {
             swap(_arr(i), _arr(largest));
-            swap(_keys(i), _keys(largest));
             _heapify(largest);
         }
     }
@@ -431,35 +446,15 @@ public:
         return _arr(0);
     }
 
-    void key_changed(int i) {
-        TKey new_key = _key_f(_arr(i));
-        TKey old_key = _keys(i);
-        _keys(i) = new_key;
-        if (new_key < old_key) {
-            _key_decreased(i);
-        } 
-        else {
-            _key_increased(i);
-        }
-    }
-
-    void _key_decreased(int i) {
-        _heapify(i);
-    }
-
-    void _key_increased(int i) {
-        while (i > 0 && _keys(i) > _keys(_parent(i))) {
-            swap(_keys(i), _keys(_parent(i)));
-            swap(_arr(i), _arr(_parent(i)));
-            i = _parent(i);
-        }
+    void updated() {
+        for (int i = min(_size - 1, _size / 2 + 1); i >= 0; i--)
+            _heapify(i);
     }
 
 private:
     int _size;
     KeyOp _key_f;
     array_1d<T> _arr;
-    array_1d<TKey> _keys;
 };
 
 class GreedySearch {
@@ -523,12 +518,16 @@ public:
     }
 
     bool iteration() {
-        return true;
+        const shared_ptr<LocalOperation>& op = operations.top();
+        if (op->score() <= 1e-5)
+            return true;
+        op->apply();
+        operations.updated();
+        return false;
     }
 
     const DiGraph& operator()() {
         int counter = 1;
-        cout << "hello" << endl;
         while (!iteration()) {
             cout << "iteration " << counter++ << ": " << score.total(graph) << endl;
         }
@@ -562,7 +561,7 @@ int main() {
     cout << "=====" << endl;
 
     DiGraph g(dataset.cols());
-    GreedySearch gs(g, mi);
+    HeapGreedySearch gs(g, mi);
     gs();
     cout << "success" << endl;
     return 0;
