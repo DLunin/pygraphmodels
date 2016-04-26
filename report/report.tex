@@ -4,6 +4,7 @@
 %\usepackage[russian]{babel}
 \usepackage{amsmath}
 \usepackage{amsthm}
+\usepackage{amsfonts}
 \usepackage{mathtools}
 \usepackage{algorithm}
 \usepackage{algorithmicx}
@@ -78,6 +79,10 @@
 
 \newcommand{\ops}[1]{
 	\textrm{ops}(#1)
+}
+
+\newcommand{\expect}[1]{
+	\mathbb{E} #1
 }
 
 \newcommand{\argmin}{\operatornamewithlimits{argmin}}
@@ -192,7 +197,130 @@ H(X) = \int_{x \in X}{p(x)\,\log p(x)\,dx}
 \end{equation}
 We use Equation \ref{eq:mi_via_entropy} for computing mutual information because it allows us to cache $H(X)$ instead of $I(X; Y)$; since it can be used for computing several $I(X; Y)$, this scheme is more efficient.
 
+\section{Fast score comparison}
+\subsubsection{CPD posterior}
+\paragraph{CPD estimation} Suppose we have a discrete random variable which takes on values $v_1, v_2, \ldots, v_m$ with probabilities $p_1, p_2, \ldots, p_m$ (these are the true probabilities). Now we have a dataset $\mathcal{D} = (x_1, x_2, \ldots, x_N)$, and we want to estimate the true probabilities $p_i$.
 
+By the Bayes theorem,
+\begin{equation}
+p(p_1, \ldots, p_m | \mathcal{D}) = \frac{p(p_1, \ldots, p_m)}{p(\mathcal{D})} p(\mathcal{D} | p_1, \ldots, p_m) 
+\end{equation}
+
+$p(\mathcal{D})$ is a constant w.r.t. $p_1, \ldots, p_m$.
+\begin{multline}
+p(\mathcal{D}|p_1, \ldots, p_m) = \prod_{i=1}^{N}{p(x_i|p_1, \ldots, p_m)} = \prod_{i=1}^{N}{p_{x_i}} = \prod_{i=1}^{N}{p_1^{[x_i = 1]} p_2^{[x_i = 2]} \ldots p_m^{[x_i = m]}} = \\ p_1^{\sum_{i=1}^N{[x_i = 1]}} p_2^{\sum_{i=1}^N{[x_i = 2]}} \ldots p_m^{\sum_{i=1}^N{[x_i = m]}} = p_1^{n_1} p_2^{n_2} \ldots p_m^{n_m} = \prod_{i = 1}^m{p_i^{n_i}}
+\end{multline}
+
+We assume that our prior on the probabilities is a Dirichlet distribution, i.e. it has the form 
+\begin{equation*}
+p(p_1, \ldots, p_m) \sim \textrm{Dirichlet}(\alpha_1, \alpha_2, \ldots, \alpha_m)
+\end{equation*}
+
+\begin{equation}
+p(p_1, \ldots, p_m) = \frac{1}{B(\alpha_1, \alpha_2, \ldots, \alpha_m)} \prod_{i=1}^m{p_i^{\alpha_i - 1}}
+\end{equation}
+
+The uniform prior corresponds to $\alpha_i = 1$ assignment.
+
+Combining these equations, we have that the posterior over $p_1, p_2, \ldots, p_m$ is also a Dirichlet distribution
+\begin{multline}
+p(p_1, p_2, \ldots, p_m|\mathcal{D}) = \frac{1}{Z_1}\,p(p_1, \ldots, p_m)\,p(\mathcal{D}|p_1, \ldots, p_m) = \\ \frac{1}{Z_2} \, \prod_{i=1}^m{p_i^{\alpha_i - 1}} \, \prod_{i=1}^m{p_i^{n_i}} = \frac{1}{Z_2}{ \prod_{i=1}^m{p_i^{n_i + \alpha_i - 1}}}
+\end{multline}
+
+\begin{equation*}
+p(p_1, p_2, \ldots, p_m|\mathcal{D}) \sim \textrm{Dirichlet}(\alpha_1 + n_1, \alpha_2 + n_2, \ldots, \alpha_m + n_m)
+\end{equation*}
+
+\subsubsection{Dirichlet distribution}
+
+\paragraph{Probability density function}
+\begin{equation}
+p(p_1, \ldots, p_m) = \frac{1}{B(\alpha_1, \alpha_2, \ldots, \alpha_m)} \prod_{i=1}^m{p_i^{\alpha_i - 1}}
+\end{equation}
+
+\paragraph{Support}
+\begin{equation}
+p_1 + p_2 + \ldots + p_m = 1
+\end{equation}
+
+\paragraph{Marginals}
+\begin{equation*}
+\alpha_0 = \sum_{i=1}^m{\alpha_i}
+\end{equation*}
+
+\begin{equation*}
+p(p_i) \sim \textrm{Beta}(\alpha_i, \alpha_0 - \alpha_i)
+\end{equation*}
+
+\begin{equation}
+p(p_i) = \frac{1}{B(\alpha_i, \alpha_0 - \alpha_i)} \, p_i^{\alpha_i} (1 - p_i)^{\alpha_0 - \alpha_i}
+\end{equation}
+
+\paragraph{Mean}
+\begin{equation}
+\expect{p_i} = \frac{\alpha_i}{\alpha_0} = \frac{\alpha_i}{\sum\limits_{j=1}^m{\alpha_j}}
+\end{equation}
+
+\paragraph{Variance}
+\begin{equation}
+\mathbb{D}{p_i} = \frac{\alpha_i(\alpha_0 - \alpha_i)}{\alpha_0^2(\alpha_0 + 1)}
+\end{equation}
+
+\paragraph{Covariance}
+\begin{equation}
+\textrm{cov}(p_i, p_j) = \frac{-\alpha_i\alpha_j}{\alpha_0^2(\alpha_0 + 1)}
+\end{equation}
+
+\subsubsection{Entropy moments}
+\paragraph{Entropy} Recall that the entropy has the form
+\begin{equation*}
+H(p_1, p_2, \ldots, p_m) = \sum_{i = 1}^m{p_i \log p_i}
+\end{equation*}
+
+We want to compute the variance of our estimate of the entropy $\mathbb{D}H(p_1, p_2, \ldots, p_m)$, where $p_1, p_2, \ldots, p_m \sim \textrm{Dirichlet}(\alpha_1 + n_1, \ldots, \alpha_m + n_m)$, as discussed above.
+
+\newtheorem{theorem}{Theorem}
+\begin{theorem}
+If $p_1, p_2, \ldots, p_m \sim \textrm{Dirichlet}(\alpha_1, \alpha_2, \ldots, \alpha_n)$, $x = p_i$, $\alpha_x = \alpha_i$, $y = p_j$, $\alpha_y = \alpha_j$ and $k_x, k_y, m_x, m_y$ are arbitrary nonnegative constants, then 
+\begin{multline}
+\mathbb{E}(x^{k_x} y^{k_y} \log^{m_x} x \log^{m_y} y) = \\ \frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} \, \frac{\partial^{m_y}B(\alpha_y + k_y, \alpha_z)}{(\partial \alpha_y)^{m_y}} \, \frac{\partial^{m_x}B(\alpha_x + k_x, \alpha_y + \alpha_z + k_y)}{(\partial \alpha_x)^{m_z}}
+\end{multline}
+
+where $\alpha_z = \alpha_0 - \alpha_x - \alpha_y$
+\begin{proof}
+	Let $z$ be the combined probability of all values $v_k$ except $v_i$ and $v_j$. Then
+	
+	\begin{equation*}
+	x, y, z \sim \textrm{Dirichlet}(\alpha_x, \alpha_y, \alpha_z)
+	\end{equation*}
+	
+	\begin{equation}
+	p(x, y, z) = \frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} x^{\alpha_x - 1} y^{\alpha_y - 1} z^{\alpha_z - 1}
+	\end{equation}
+	
+	
+	$x + y + z = 1$, so $z$ is a deterministic function of $x$ and $y$: 
+	
+	\begin{equation}
+	p(x, y) = \frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} x^{\alpha_x - 1} y^{\alpha_y - 1} (1 - x - y)^{\alpha_z - 1}
+	\end{equation}
+	
+	\begin{multline*}
+	\mathbb{E}(x^{k_x} y^{k_y} \log^{m_x} x \log^{m_y} y) = \int\limits_{0 < x + y < 1} {p(x, y) \, x^{k_x} y^{k_y} \log^{m_x} x \log^{m_y} y \, dx \, dy} = \\ \int\limits_{0 < x + y < 1} {\frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} x^{\alpha_x - 1} y^{\alpha_y - 1} (1 - x - y)^{\alpha_z - 1} \, x^{k_x} y^{k_y} \log^{m_x} x \log^{m_y} y \, dx \, dy} = \\ \frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} \int\limits_{0 < x + y < 1} { x^{\alpha_x + k_x - 1} y^{\alpha_y + k_y - 1} (1 - x - y)^{\alpha_z - 1} \, \log^{m_x} x \log^{m_y} y \, dx \, dy} = \\ \frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} \int\limits_0^1 { x^{\alpha_x + k_x - 1} \log^{m_y}{x} \, dx \, \int\limits_0^{1-x}{ y^{\alpha_y + k_y - 1} (1 - x - y)^{\alpha_z - 1} \, \log^{m_x} y \, dy}} = \\  \frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} \int\limits_0^1 { x^{\alpha_x + k_x - 1} \log^{m_y}{x} \, dx \, \int\limits_0^{1-x}{ \frac{\partial^{m_y}}{(\partial \alpha_y)^{m_y}} (y^{\alpha_y + k_y - 1} (1 - x - y)^{\alpha_z - 1}) \, dy}} = \\ \frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} \int\limits_0^1 { x^{\alpha_x + k_x - 1} \log^{m_y}{x} \, dx \, \frac{\partial^{m_y}}{(\partial \alpha_y)^{m_y}} \int\limits_0^{1-x}{  (y^{\alpha_y + k_y - 1} (1 - x - y)^{\alpha_z - 1}) \, dy}} 
+	\end{multline*}
+	
+	Now let's compute $I(x) = \int\limits_0^{1-x}{  (y^{\alpha_y + k_y - 1} (1 - x - y)^{\alpha_z - 1}) \, dy} $. Let $y = (1 - x)t$, then
+	
+	\begin{multline*}
+	I(x) = \int\limits_0^1{((1 - x)t)^{\alpha_y + k_y - 1} (1 - x - (1 - x)t)^{\alpha_z - 1} \, d((1 - x)t)} = \\ \int\limits_0^1{(1 - x)^{\alpha_y + \alpha_z + k_y - 1} \, t^{\alpha_y + k_y - 1} (1 - t)^{\alpha_z - 1} \, dt} = \\ (1 - x)^{\alpha_y + \alpha_z + k_y - 1} \int\limits_0^1{t^{\alpha_y + k_y - 1} (1 - t)^{\alpha_z - 1} \, dt} = (1 - x)^{\alpha_y + \alpha_z + k_y - 1} B(\alpha_y + k_y, \alpha_z)
+	\end{multline*}
+	
+	\begin{multline*}
+	\mathbb{E}(x^{k_x} y^{k_y} \log^{m_x} x \log^{m_y} y) = \\ \frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} \int\limits_0^1 { x^{\alpha_x + k_x - 1} \log^{m_y}{x} \, \frac{\partial^{m_y} (1 - x)^{\alpha_y + \alpha_z + k_y - 1} B(\alpha_y + k_y, \alpha_z)}{(\partial \alpha_y)^{m_y}} \, dx } = \\ \frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} \int\limits_0^1 { x^{\alpha_x + k_x - 1} \log^{m_y}{x} \, \frac{\partial^{m_y} (1 - x)^{\alpha_y + \alpha_z + k_y - 1} B(\alpha_y + k_y, \alpha_z)}{(\partial \alpha_y)^{m_y}} \, dx }
+	\end{multline*}
+	
+\end{proof}
+\end{theorem}
 
 \section{Testing and benchmarking}
 \subsection{Tiling Bayesian networks \cite{Tsamardinos2006}}
