@@ -271,13 +271,7 @@ p(p_i) = \frac{1}{B(\alpha_i, \alpha_0 - \alpha_i)} \, p_i^{\alpha_i} (1 - p_i)^
 \textrm{cov}(p_i, p_j) = \frac{-\alpha_i\alpha_j}{\alpha_0^2(\alpha_0 + 1)}
 \end{equation}
 
-\subsubsection{Entropy moments}
-\paragraph{Entropy} Recall that the entropy has the form
-\begin{equation*}
-H(p_1, p_2, \ldots, p_m) = \sum_{i = 1}^m{p_i \log p_i}
-\end{equation*}
-
-We want to compute the variance of our estimate of the entropy $\mathbb{D}H(p_1, p_2, \ldots, p_m)$, where $p_1, p_2, \ldots, p_m \sim \textrm{Dirichlet}(\alpha_1 + n_1, \ldots, \alpha_m + n_m)$, as discussed above.
+\subsubsection{Heavy math}
 
 \newtheorem{theorem}{Theorem}
 \begin{theorem}
@@ -316,11 +310,96 @@ where $\alpha_z = \alpha_0 - \alpha_x - \alpha_y$
 	\end{multline*}
 	
 	\begin{multline*}
-	\mathbb{E}(x^{k_x} y^{k_y} \log^{m_x} x \log^{m_y} y) = \\ \frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} \int\limits_0^1 { x^{\alpha_x + k_x - 1} \log^{m_y}{x} \, \frac{\partial^{m_y} (1 - x)^{\alpha_y + \alpha_z + k_y - 1} B(\alpha_y + k_y, \alpha_z)}{(\partial \alpha_y)^{m_y}} \, dx } = \\ \frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} \int\limits_0^1 { x^{\alpha_x + k_x - 1} \log^{m_y}{x} \, \frac{\partial^{m_y} (1 - x)^{\alpha_y + \alpha_z + k_y - 1} B(\alpha_y + k_y, \alpha_z)}{(\partial \alpha_y)^{m_y}} \, dx }
+	\mathbb{E}(x^{k_x} y^{k_y} \log^{m_x} x \log^{m_y} y) = \\ \frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} \int\limits_0^1 { x^{\alpha_x + k_x - 1} \log^{m_y}{x} \, \frac{\partial^{m_y} (1 - x)^{\alpha_y + \alpha_z + k_y - 1} B(\alpha_y + k_y, \alpha_z)}{(\partial \alpha_y)^{m_y}} \, dx } = \\ \frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} \frac{\partial^{m_y} B(\alpha_y + k_y, \alpha_z)}{(\partial \alpha_y)^{m_y}} \, \int\limits_0^1 { x^{\alpha_x + k_x - 1} \log^{m_x}{x} \, (1 - x)^{\alpha_y + \alpha_z + k_y - 1} \, dx }
 	\end{multline*}
 	
+	\begin{multline*}
+	\mathbb{E}(x^{k_x} y^{k_y} \log^{m_x} x \log^{m_y} y) = \\ \frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} \int\limits_0^1 { x^{\alpha_x + k_x - 1} \log^{m_y}{x} \, \frac{\partial^{m_y} (1 - x)^{\alpha_y + \alpha_z + k_y - 1} B(\alpha_y + k_y, \alpha_z)}{(\partial \alpha_y)^{m_y}} \, dx } = \\ \frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} \frac{\partial^{m_y} B(\alpha_y + k_y, \alpha_z)}{(\partial \alpha_y)^{m_y}} \, \int\limits_0^1 { \frac{\partial^{m_x}}{(\partial \alpha_x)^{m_x}} (x^{\alpha_x + k_x - 1} \, (1 - x)^{\alpha_y + \alpha_z + k_y - 1}) \, dx } = \\ \frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} \frac{\partial^{m_y} B(\alpha_y + k_y, \alpha_z)}{(\partial \alpha_y)^{m_y}} \, \frac{\partial^{m_x} B(\alpha_x + k_x, \alpha_z + \alpha_y + k_y)}{(\partial \alpha_x)^{m_x}}
+	\end{multline*}
 \end{proof}
 \end{theorem}
+
+\begin{theorem}
+If $p_1, p_2, \ldots, p_m \sim \textrm{Dirichlet}(\alpha_1, \alpha_2, \ldots, \alpha_n)$, $x = p_i$, $\alpha_x = \alpha_i$, $y = p_j$, $\alpha_y = \alpha_j$, then
+
+\begin{equation}
+\mathbb{E}\log(x + y) = -\sum_{n=1}^{\infty}{\frac{1}{n} \frac{B(\alpha_x + n, \alpha_y + \alpha_z)}{B(\alpha_x, \alpha_y + \alpha_z)}}
+\end{equation}
+
+\begin{proof}
+
+\begin{multline}
+\mathbb{E}\log(x + y) = \int\limits_{0 < x + y < 1}{\frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} \, x^{\alpha_x - 1} y^{\alpha_y - 1} (1 - x - y)^{\alpha_z - 1} \, \log(x + y) \, dx \, dy} = \\ \frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} \, \int\limits_{0 < x + y < 1}{ x^{\alpha_x - 1} y^{\alpha_y - 1} (1 - x - y)^{\alpha_z - 1} \, \log(1 - (1 - x - y)) \, dx \, dy} = \\ \frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} \, \int\limits_{0 < x + y < 1}{ x^{\alpha_x - 1} y^{\alpha_y - 1} (1 - x - y)^{\alpha_z - 1} \, (\sum_{n=1}^{\infty}{\frac{x^n}{n}}) \, dx \, dy} = \\ -\frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} \, \sum_{n=1}^{\infty}{\frac{1}{n} \int\limits_{0 < x + y < 1}{ x^{\alpha_x + n - 1} y^{\alpha_y - 1} (1 - x - y)^{\alpha_z - 1} \, dx \, dy}}
+\end{multline}
+
+Note that the integral has the same form as in the proof of Theorem 1, with $k_x = n, \, m_y = m_x = k_y = 0$, so we have
+	
+\begin{multline}
+\mathbb{E}\log(x + y) = -\frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} \, \sum_{n=1}^{\infty}{\frac{1}{n} B(\alpha_y, \alpha_z) B(\alpha_x + n, \alpha_y + \alpha_z)} = \\
+-\sum_{n=1}^{\infty}{\frac{ B(\alpha_y, \alpha_z) B(\alpha_x + n, \alpha_y + \alpha_z)}{n B(\alpha_x, \alpha_y, \alpha_z)}} = \\ -\sum_{n=1}^{\infty}{\frac{ B(\alpha_y, \alpha_z) B(\alpha_x, \alpha_y + \alpha_z)}{n B(\alpha_x, \alpha_y, \alpha_z)} \frac{B(\alpha_x + n, \alpha_y + \alpha_z)}{B(\alpha_x, \alpha_y + \alpha_z)}} = \\ -\sum_{n=1}^{\infty}{\frac{1}{n} \frac{B(\alpha_x + n, \alpha_y + \alpha_z)}{B(\alpha_x, \alpha_y + \alpha_z)}}
+\end{multline}	
+
+\end{proof}
+\end{theorem}
+
+\subsubsection{Entropy variance}
+\paragraph{Entropy} Recall that the entropy has the form
+\begin{equation*}
+H(p_1, p_2, \ldots, p_m) = \sum_{i = 1}^m{p_i \log p_i}
+\end{equation*}
+
+We want to compute the variance of our estimate of the entropy $\mathbb{D}H(p_1, p_2, \ldots, p_m)$, where $p_1, p_2, \ldots, p_m \sim \textrm{Dirichlet}(\alpha_1 + n_1, \ldots, \alpha_m + n_m)$, as discussed above.
+
+\begin{equation}
+\mathbb{D}(\sum_{i = 1}^n{X_i}) = \sum_{i=1}^n{\mathbb{D}X_i} + 2 \sum_{i = 1}^n{\sum_{j = 1, \\ j < i}^n{{\textrm{cov}(X_i, X_j)}}}
+\end{equation}
+
+Applying this formula to our task, we have that
+\begin{equation}
+\mathbb{D}(\sum_{i = 1}^n{p_i \log{p_i}}) = \sum_{i=1}^n{\mathbb{D}(p_i \log{p_i})} + 2 \sum_{i = 1}^n{\sum_{j = 1, \\ j < i}^n{{\textrm{cov}(p_i \log{p_i}, p_j \log{p_j})}}}
+\end{equation}
+
+A well-known fact from probability theory states that
+\begin{equation}
+\mathbb{D}X = \mathbb{E}(X - \mathbb{E}X)^2 = \mathbb{E}(X^2 - 2X \mathbb{E}X - (\mathbb{E}X)^2) = \mathbb{E}(X^2) - (\mathbb{E}X)^2
+\end{equation}
+
+\begin{multline}
+\textrm{cov}(X, Y) = \mathbb{E}(X - \mathbb{E}X)(Y - \mathbb{E}Y) = \\ \mathbb{E}(XY - X \mathbb{E}Y - Y \mathbb{E}X + \mathbb{E}X\mathbb{E}Y) = \mathbb{E}XY - \mathbb{E}X\mathbb{E}Y
+\end{multline}
+
+Applying,
+\begin{equation}
+\mathbb{D}(p_i \log{p_i}) = \mathbb{E}(p_i^2 \log^2{p_i}) - (\mathbb{E} \, p_i \log{p_i})^2 
+\end{equation}
+\begin{equation}
+\textrm{cov}(p_i \log{p_i}, p_j \log{p_j}) = \mathbb{E}(p_i p_j \log{p_i} \log{p_j}) - (\mathbb{E} \, p_i \log{p_i})(\mathbb{E} \, p_j \log{p_j})
+\end{equation}
+
+Note that all values on the right side can be computed using Theorem 1. Hence, we have an analytical formula for $\mathbb{D}H(p_1, p_2, \ldots, p_m)$.
+
+\subsubsection{Mutual information variance}
+Mutual information can be expressed as  
+\begin{equation}
+MI(X, Y) = H(X) + H(Y) - H(X, Y)
+\end{equation}
+where $X$ and $Y$ are some sets of random variables. 
+
+In local structure search, we need to estimate
+\begin{equation}
+MI(X, Pa(X)) = H(X) + H(Pa(X)) - H(X, Pa(X))
+\end{equation}
+
+In terms of $p_{11}, p_{12}, \ldots, p_{nm}$ -- probabilities of instantiations of $(X, Pa(X))$:
+\begin{multline}
+MI(p_{11}, p_{12}, \ldots, p_{nm}) = \sum_i{(\sum_j{p_{ij}}) \log(\sum_j{p_{ij}})} + \sum_j{(\sum_i{p_{ij}}) \log(\sum_i{p_{ij}})} - \\ \sum_{i,j}{p_{ij} \log p_{ij}}
+\end{multline}
+
+In order to estimate the variance of mutual information we have to compute the variance of every term of this sum (it can be done by applying Theorem 1 directly), and covariances of all pairs of terms.
+
+Covariances between terms that lie in the same part of the expression can also be computed by applying Theorem 1, as it was done in the previous section.
+
+Covariances of terms that lie in part 1 and part 3, or part 2 and part 3 can be computed using Theorem 2.
 
 \section{Testing and benchmarking}
 \subsection{Tiling Bayesian networks \cite{Tsamardinos2006}}
@@ -337,6 +416,8 @@ where $\alpha_z = \alpha_0 - \alpha_x - \alpha_y$
 	Ioannis Tsamardinos, Alexander Statnikov, Laura E. Brown, Constantin F. Aliferis
 	\emph{Generating realistic large bayesian networks by tiling},
 	2006.
+	
+	
 	
 \end{thebibliography}
 
