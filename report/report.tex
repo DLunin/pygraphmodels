@@ -9,6 +9,7 @@
 \usepackage{algorithm}
 \usepackage{algorithmicx}
 \usepackage{algpseudocode}
+\usepackage[left=50pt]{geometry}
 \usepackage{tikz}
 
 \DeclarePairedDelimiter\abs{\lvert}{\rvert}%
@@ -277,7 +278,7 @@ p(p_i) = \frac{1}{B(\alpha_i, \alpha_0 - \alpha_i)} \, p_i^{\alpha_i} (1 - p_i)^
 \begin{theorem}
 If $p_1, p_2, \ldots, p_m \sim \textrm{Dirichlet}(\alpha_1, \alpha_2, \ldots, \alpha_n)$, $x = p_i$, $\alpha_x = \alpha_i$, $y = p_j$, $\alpha_y = \alpha_j$ and $k_x, k_y, m_x, m_y$ are arbitrary nonnegative constants, then 
 \begin{multline}
-\mathbb{E}(x^{k_x} y^{k_y} \log^{m_x} x \log^{m_y} y) = \\ \frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} \, \frac{\partial^{m_y}B(\alpha_y + k_y, \alpha_z)}{(\partial \alpha_y)^{m_y}} \, \frac{\partial^{m_x}B(\alpha_x + k_x, \alpha_y + \alpha_z + k_y)}{(\partial \alpha_x)^{m_z}}
+\mathbb{E}(x^{k_x} y^{k_y} \log^{m_x} x \log^{m_y} y) = \\ \frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} \,  \sum_{i=0}^{m_y}{ C^i_{m_y} \frac{\partial^{m_y-i} B(\alpha_y + k_y, \alpha_z)}{(\partial \alpha_y)^{m_y-i}} \, \frac{\partial^{m_x + i}}{(\partial \alpha_x)^{m_x} (\partial \alpha_y)^{i}} \, B(\alpha_x + k_x, \alpha_y + \alpha_z + k_y)}
 \end{multline}
 
 where $\alpha_z = \alpha_0 - \alpha_x - \alpha_y$
@@ -300,7 +301,12 @@ where $\alpha_z = \alpha_0 - \alpha_x - \alpha_y$
 	\end{equation}
 	
 	\begin{multline*}
-	\mathbb{E}(x^{k_x} y^{k_y} \log^{m_x} x \log^{m_y} y) = \int\limits_{0 < x + y < 1} {p(x, y) \, x^{k_x} y^{k_y} \log^{m_x} x \log^{m_y} y \, dx \, dy} = \\ \int\limits_{0 < x + y < 1} {\frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} x^{\alpha_x - 1} y^{\alpha_y - 1} (1 - x - y)^{\alpha_z - 1} \, x^{k_x} y^{k_y} \log^{m_x} x \log^{m_y} y \, dx \, dy} = \\ \frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} \int\limits_{0 < x + y < 1} { x^{\alpha_x + k_x - 1} y^{\alpha_y + k_y - 1} (1 - x - y)^{\alpha_z - 1} \, \log^{m_x} x \log^{m_y} y \, dx \, dy} = \\ \frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} \int\limits_0^1 { x^{\alpha_x + k_x - 1} \log^{m_y}{x} \, dx \, \int\limits_0^{1-x}{ y^{\alpha_y + k_y - 1} (1 - x - y)^{\alpha_z - 1} \, \log^{m_x} y \, dy}} = \\  \frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} \int\limits_0^1 { x^{\alpha_x + k_x - 1} \log^{m_y}{x} \, dx \, \int\limits_0^{1-x}{ \frac{\partial^{m_y}}{(\partial \alpha_y)^{m_y}} (y^{\alpha_y + k_y - 1} (1 - x - y)^{\alpha_z - 1}) \, dy}} = \\ \frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} \int\limits_0^1 { x^{\alpha_x + k_x - 1} \log^{m_y}{x} \, dx \, \frac{\partial^{m_y}}{(\partial \alpha_y)^{m_y}} \int\limits_0^{1-x}{  (y^{\alpha_y + k_y - 1} (1 - x - y)^{\alpha_z - 1}) \, dy}} 
+	\mathbb{E}(x^{k_x} y^{k_y} \log^{m_x} x \log^{m_y} y) = \int\limits_{0 < x + y < 1} {p(x, y) \, x^{k_x} y^{k_y} \log^{m_x} x \log^{m_y} y \, dx \, dy} = 
+	\\ \int\limits_{0 < x + y < 1} {\frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} x^{\alpha_x - 1} y^{\alpha_y - 1} (1 - x - y)^{\alpha_z - 1} \, x^{k_x} y^{k_y} \log^{m_x} x \log^{m_y} y \, dx \, dy} = 
+	\\ \frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} \int\limits_{0 < x + y < 1} { x^{\alpha_x + k_x - 1} y^{\alpha_y + k_y - 1} (1 - x - y)^{\alpha_z - 1} \, \log^{m_x} x \log^{m_y} y \, dx \, dy} = 
+	\\ \frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} \int\limits_0^1 { x^{\alpha_x + k_x - 1} \log^{m_x}{x} \, dx \, \int\limits_0^{1-x}{ y^{\alpha_y + k_y - 1} (1 - x - y)^{\alpha_z - 1} \, \log^{m_y} y \, dy}} = 
+	\\  \frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} \int\limits_0^1 { x^{\alpha_x + k_x - 1} \log^{m_x}{x} \, dx \, \int\limits_0^{1-x}{ \frac{\partial^{m_y}}{(\partial \alpha_y)^{m_y}} (y^{\alpha_y + k_y - 1} (1 - x - y)^{\alpha_z - 1}) \, dy}} = 
+	\\ \frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} \int\limits_0^1 { x^{\alpha_x + k_x - 1} \log^{m_x}{x} \, dx \, \frac{\partial^{m_y}}{(\partial \alpha_y)^{m_y}} \int\limits_0^{1-x}{  (y^{\alpha_y + k_y - 1} (1 - x - y)^{\alpha_z - 1}) \, dy}} 
 	\end{multline*}
 	
 	Now let's compute $I(x) = \int\limits_0^{1-x}{  (y^{\alpha_y + k_y - 1} (1 - x - y)^{\alpha_z - 1}) \, dy} $. Let $y = (1 - x)t$, then
@@ -310,11 +316,14 @@ where $\alpha_z = \alpha_0 - \alpha_x - \alpha_y$
 	\end{multline*}
 	
 	\begin{multline*}
-	\mathbb{E}(x^{k_x} y^{k_y} \log^{m_x} x \log^{m_y} y) = \\ \frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} \int\limits_0^1 { x^{\alpha_x + k_x - 1} \log^{m_y}{x} \, \frac{\partial^{m_y} (1 - x)^{\alpha_y + \alpha_z + k_y - 1} B(\alpha_y + k_y, \alpha_z)}{(\partial \alpha_y)^{m_y}} \, dx } = \\ \frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} \frac{\partial^{m_y} B(\alpha_y + k_y, \alpha_z)}{(\partial \alpha_y)^{m_y}} \, \int\limits_0^1 { x^{\alpha_x + k_x - 1} \log^{m_x}{x} \, (1 - x)^{\alpha_y + \alpha_z + k_y - 1} \, dx }
-	\end{multline*}
-	
-	\begin{multline*}
-	\mathbb{E}(x^{k_x} y^{k_y} \log^{m_x} x \log^{m_y} y) = \\ \frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} \int\limits_0^1 { x^{\alpha_x + k_x - 1} \log^{m_y}{x} \, \frac{\partial^{m_y} (1 - x)^{\alpha_y + \alpha_z + k_y - 1} B(\alpha_y + k_y, \alpha_z)}{(\partial \alpha_y)^{m_y}} \, dx } = \\ \frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} \frac{\partial^{m_y} B(\alpha_y + k_y, \alpha_z)}{(\partial \alpha_y)^{m_y}} \, \int\limits_0^1 { \frac{\partial^{m_x}}{(\partial \alpha_x)^{m_x}} (x^{\alpha_x + k_x - 1} \, (1 - x)^{\alpha_y + \alpha_z + k_y - 1}) \, dx } = \\ \frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} \frac{\partial^{m_y} B(\alpha_y + k_y, \alpha_z)}{(\partial \alpha_y)^{m_y}} \, \frac{\partial^{m_x} B(\alpha_x + k_x, \alpha_z + \alpha_y + k_y)}{(\partial \alpha_x)^{m_x}}
+	\mathbb{E}(x^{k_x} y^{k_y} \log^{m_x} x \log^{m_y} y) = \\ \frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} \int\limits_0^1 { x^{\alpha_x + k_x - 1} \log^{m_y}{x} \, \frac{\partial^{m_y} (1 - x)^{\alpha_y + \alpha_z + k_y - 1} B(\alpha_y + k_y, \alpha_z)}{(\partial \alpha_y)^{m_y}} \, dx } = 
+	\\ \sum_{i=0}^{m_y}{ C^i_{m_y} \frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} \, \frac{\partial^{m_y-i} B(\alpha_y + k_y, \alpha_z)}{(\partial \alpha_y)^{m_y-i}} \, \int\limits_0^1 { x^{\alpha_x + k_x - 1} \log^{m_x}{x} \, (1 - x)^{\alpha_y + \alpha_z + k_y - 1} \, \log^i{(1 - x)} dx }} = 
+	\\ \sum_{i=0}^{m_y}{ \frac{C^i_{m_y}}{B(\alpha_x, \alpha_y, \alpha_z)} \, \frac{\partial^{m_y-i} B(\alpha_y + k_y, \alpha_z)}{(\partial \alpha_y)^{m_y-i}} \, \int\limits_0^1 { x^{\alpha_x + k_x - 1} \log^{m_x}{x} \, (1 - x)^{\alpha_y + \alpha_z + k_y - 1} \, \log^i{(1 - x)} dx }} = 
+	\\ \sum_{i=0}^{m_y}{ \frac{C^i_{m_y}}{B(\alpha_x, \alpha_y, \alpha_z)} \, \frac{\partial^{m_y-i} B(\alpha_y + k_y, \alpha_z)}{(\partial \alpha_y)^{m_y-i}} \, \int\limits_0^1 { \frac{\partial^{m_x}}{(\partial \alpha_x)^{m_x}} (x^{\alpha_x + k_x - 1} \, (1 - x)^{\alpha_y + \alpha_z + k_y - 1} \, \log^i{(1 - x)}) \, dx }} = 
+	\\ \sum_{i=0}^{m_y}{ \frac{C^i_{m_y}}{B(\alpha_x, \alpha_y, \alpha_z)} \, \frac{\partial^{m_y-i} B(\alpha_y + k_y, \alpha_z)}{(\partial \alpha_y)^{m_y-i}} \, \frac{\partial^{m_x}}{(\partial \alpha_x)^{m_x}} \, \int\limits_0^1 {x^{\alpha_x + k_x - 1} \, (1 - x)^{\alpha_y + \alpha_z + k_y - 1} \, \log^i{(1 - x)} \, dx }} = 
+	\\ \sum_{i=0}^{m_y}{ \frac{C^i_{m_y}}{B(\alpha_x, \alpha_y, \alpha_z)} \, \frac{\partial^{m_y-i} B(\alpha_y + k_y, \alpha_z)}{(\partial \alpha_y)^{m_y-i}} \, \frac{\partial^{m_x}}{(\partial \alpha_x)^{m_x}} \,
+		\frac{\partial^{i}}{(\partial \alpha_y)^{i}} \, \int\limits_0^1 {x^{\alpha_x + k_x - 1} \, (1 - x)^{\alpha_y + \alpha_z + k_y - 1} \, dx }} = 
+	\\ \frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} \,  \sum_{i=0}^{m_y}{ C^i_{m_y} \frac{\partial^{m_y-i} B(\alpha_y + k_y, \alpha_z)}{(\partial \alpha_y)^{m_y-i}} \, \frac{\partial^{m_x + i}}{(\partial \alpha_x)^{m_x} (\partial \alpha_y)^{i}} \, B(\alpha_x + k_x, \alpha_y + \alpha_z + k_y)}
 	\end{multline*}
 \end{proof}
 \end{theorem}
@@ -400,6 +409,9 @@ In order to estimate the variance of mutual information we have to compute the v
 Covariances between terms that lie in the same part of the expression can also be computed by applying Theorem 1, as it was done in the previous section.
 
 Covariances of terms that lie in part 1 and part 3, or part 2 and part 3 can be computed using Theorem 2.
+
+\section{Mutual information estimation as a statistical test}
+\paragraph{TODO} G-test and p-value estimation via moments (as opposed to chi-squared approx.)
 
 \section{Testing and benchmarking}
 \subsection{Tiling Bayesian networks \cite{Tsamardinos2006}}
