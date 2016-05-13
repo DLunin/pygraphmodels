@@ -338,15 +338,17 @@ If $p_1, p_2, \ldots, p_m \sim \textrm{Dirichlet}(\alpha_1, \alpha_2, \ldots, \a
 \begin{proof}
 
 \begin{multline}
-\mathbb{E}\log(x + y) = \int\limits_{0 < x + y < 1}{\frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} \, x^{\alpha_x - 1} y^{\alpha_y - 1} (1 - x - y)^{\alpha_z - 1} \, \log(x + y) \, dx \, dy} = \\ \frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} \, \int\limits_{0 < x + y < 1}{ x^{\alpha_x - 1} y^{\alpha_y - 1} (1 - x - y)^{\alpha_z - 1} \, \log(1 - (1 - x - y)) \, dx \, dy} = \\ \frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} \, \int\limits_{0 < x + y < 1}{ x^{\alpha_x - 1} y^{\alpha_y - 1} (1 - x - y)^{\alpha_z - 1} \, (\sum_{n=1}^{\infty}{\frac{x^n}{n}}) \, dx \, dy} = \\ -\frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} \, \sum_{n=1}^{\infty}{\frac{1}{n} \int\limits_{0 < x + y < 1}{ x^{\alpha_x + n - 1} y^{\alpha_y - 1} (1 - x - y)^{\alpha_z - 1} \, dx \, dy}}
+\mathbb{E}\log(x + y) = \int\limits_{0 < x + y < 1}{\frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} \, x^{\alpha_x - 1} y^{\alpha_y - 1} (1 - x - y)^{\alpha_z - 1} \, \log(x + y) \, dx \, dy} = 
+\\ \frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} \, \int\limits_{0 < x + y < 1}{ x^{\alpha_x - 1} y^{\alpha_y - 1} (1 - x - y)^{\alpha_z - 1} \, \log(1 - (1 - x - y)) \, dx \, dy} = 
+\\ \frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} \, \int\limits_{0 < x + y < 1}{ x^{\alpha_x - 1} y^{\alpha_y - 1} (1 - x - y)^{\alpha_z - 1} \, (-\sum_{n=1}^{\infty}{\frac{(1 - x - y)^n}{n}}) \, dx \, dy} =
+\\ -\frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} \, \sum_{n=1}^{\infty}{\frac{1}{n} \int\limits_{0 < x + y < 1}{ x^{\alpha_x - 1} y^{\alpha_y - 1} (1 - x - y)^{\alpha_z + n - 1} \, dx \, dy}}
 \end{multline}
 
-Note that the integral has the same form as in the proof of Theorem 1, with $k_x = n, \, m_y = m_x = k_y = 0$, so we have
+Note that the integral has the same form as in the proof of Theorem 1, with $k_x = m_y = m_x = k_y = 0$, so we have
 	
-\begin{multline}
-\mathbb{E}\log(x + y) = -\frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} \, \sum_{n=1}^{\infty}{\frac{1}{n} B(\alpha_y, \alpha_z) B(\alpha_x + n, \alpha_y + \alpha_z)} = \\
--\sum_{n=1}^{\infty}{\frac{ B(\alpha_y, \alpha_z) B(\alpha_x + n, \alpha_y + \alpha_z)}{n B(\alpha_x, \alpha_y, \alpha_z)}} = \\ -\sum_{n=1}^{\infty}{\frac{ B(\alpha_y, \alpha_z) B(\alpha_x, \alpha_y + \alpha_z)}{n B(\alpha_x, \alpha_y, \alpha_z)} \frac{B(\alpha_x + n, \alpha_y + \alpha_z)}{B(\alpha_x, \alpha_y + \alpha_z)}} = \\ -\sum_{n=1}^{\infty}{\frac{1}{n} \frac{B(\alpha_x + n, \alpha_y + \alpha_z)}{B(\alpha_x, \alpha_y + \alpha_z)}}
-\end{multline}	
+\begin{equation*}
+\mathbb{E}\log(x + y) = -\frac{1}{B(\alpha_x, \alpha_y, \alpha_z)} \, \sum_{n=1}^{\infty}{\frac{1}{n} B(\alpha_y, \alpha_z + n) B(\alpha_x, \alpha_y + \alpha_z + n)} 
+\end{equation*}	
 
 \end{proof}
 \end{theorem}
