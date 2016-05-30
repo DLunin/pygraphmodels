@@ -1,7 +1,6 @@
 \documentclass{article}
 \usepackage[T2A]{fontenc}
 \usepackage[utf8]{inputenc}
-%\usepackage[russian]{babel}
 \usepackage{amsmath}
 \usepackage{amsthm}
 \usepackage{amsfonts}
@@ -9,99 +8,29 @@
 \usepackage{algorithm}
 \usepackage{algorithmicx}
 \usepackage{algpseudocode}
-\usepackage[left=50pt]{geometry}
+\usepackage[left=75pt]{geometry}
 \usepackage{tikz}
 
-\DeclarePairedDelimiter\abs{\lvert}{\rvert}%
-\DeclarePairedDelimiter\norm{\lVert}{\rVert}%
-
-% Swap the definition of \abs* and \norm*, so that \abs
-% and \norm resizes the size of the brackets, and the 
-% starred version does not.
-\makeatletter
-\let\oldabs\abs
-\def\abs{\@ifstar{\oldabs}{\oldabs*}}
-%
-\let\oldnorm\norm
-\def\norm{\@ifstar{\oldnorm}{\oldnorm*}}
-\makeatother
-%
-
-\providecommand\given{} % so it exists
-\newcommand\SetSymbol[1][]{
-	\nonscript\,#1\vert \allowbreak \nonscript\,\mathopen{}}
-
-\DeclarePairedDelimiterX\Set[1]{\lbrace}{\rbrace}%
-{ \renewcommand\given{\SetSymbol[\delimsize]} #1 }
-
-\newcommand{\pd}[2]{
-	\frac{\partial{#1}}{\partial{#2}}
-}
-
-\newcommand{\ppd}[1]{
-	\frac{\partial}{\partial{#1}}
-}
-
-\newcommand{\mean}[3]{
-	\frac{1}{#2} \sum_{#1 = 1}^{#2}{#3}
-}
-
-\newcommand{\score}[1]{
-	\textrm{score}(#1)
-}
-
-\newcommand{\pa}[1]{Pa(#1)}
-
-\newcommand{\affnodes}[1]{
-	\textrm{Aff}(#1)	
-}
-
-\newcommand{\addedge}[1]{
-	\textrm{Add}(#1)	
-}
-
-\newcommand{\rmedge}[1]{
-	\textrm{Del}(#1)
-}
-
-\newcommand{\revedge}[1]{
-	\textrm{Rev}(#1)
-}
-
-\newcommand{\bigO}[1]{
-	\mathcal{O}{(#1)}
-}
-
-\newcommand{\graph}[1]{
-	\mathcal{#1}
-}
-
-\newcommand{\var}[1]{{\ttfamily#1}}% variable
-
-\newcommand{\ops}[1]{
-	\textrm{ops}(#1)
-}
-
-\newcommand{\expect}[1]{
-	\mathbb{E} #1
-}
-
+\newcommand{\score}[1]{\textrm{score}(#1)}
+\newcommand{\bigO}[1]{\mathcal{O}{(#1)}}
+\newcommand{\graph}[1]{\mathcal{#1}}
+\newcommand{\ops}[1]{\textrm{ops}(#1)}
+\newcommand{\expect}[1]{\mathbb{E} #1}
 \newcommand{\argmin}{\operatornamewithlimits{argmin}}
 \newcommand{\argmax}{\operatornamewithlimits{argmax}}
 
-\author{Dmitry Lunin}
-\title{Bayesian Networks}
+\author{Dmitry Lunin, \\ \small supervised by Senko O.V.}
+\title{Improving speed efficiency of score-based Bayesian network structure learning algorithms}
 \begin{document}
 \maketitle
+\tableofcontents
+\pagebreak
 
-\section{Overview}
-\subsection{Definition}
-
-\subsection{Workflow}
-\begin{tikzpicture}[line width=2pt]
-\draw (0,0) node [above right]  {$A$} -- (1,0);
-
-\end{tikzpicture}
+\abstract{
+	The task of Bayesian network structure learning is NP-hard \cite{StructureLearningIsNPComplete}, and as such it is usually solved by heuristic algorithms. That makes speed optimization of the structure learning algorithms especially important, since it allows to traverse more structures in a given time, yielding better quality answers.
+	
+	The proposed method improves speed efficiency of many structure learning algorithms by optimizing one of the most basic operations in score-based structure learning: the score evaluation and comparison.
+}
 
 \section{Structure Learning}
 \subsection{Introduction}
@@ -118,14 +47,18 @@ The second application is off-the-shelf machine learning. In order to apply Baye
 \subsection{Score-based approach}
 \paragraph{Description} The idea of score-based approach is to associate a Bayesian network graph with a score, and then maximize it. Since the number of such graphs is very large, greedy optimization methods are often used.
 \subsubsection{Decomposable scores}
-A score is decomposable if it can be represented as a sum of scores of graph nodes: $$ \score{\graph{G}} = \sum_i{\score{X_i}} $$
+A score is decomposable if it can be represented as a sum of scores of graph nodes: 
+\begin{equation}
+\label{eq:decomposable_score}
+\score{\graph{G}} = \sum_i{\score{X_i}}
+\end{equation} 
 A decomposable score allows for fast recalculation of graph score after local operations on graph. 
 \subsubsection{Local operations}
 
 \theoremstyle{definition}
 \newtheorem*{local.operation}{Def}
 \begin{local.operation}
-	We call a graph operation \textbf{local} if it affects edges pointing to a constant number of nodes. We will denote the set of affected nodes as $\affnodes{\textrm{op}}$.
+	We call a graph operation \textbf{local} if it affects edges pointing to a constant number of nodes.
 \end{local.operation}
 
 \theoremstyle{definition}
@@ -135,45 +68,17 @@ A decomposable score allows for fast recalculation of graph score after local op
 	$$ \score{\textrm{op}} = \score{\graph{G}_{\textrm{after}}} - \score{\graph{G}_{\textrm{before}}} $$
 \end{operation.score}
 
-\paragraph{Edge Addition}
-Add edge from node $u$ to node $v$. Denoted as $\addedge{u, v}$. $$ \affnodes{\addedge{u, v}} = \Set{v} $$
-\paragraph{Edge Deletion}
-Delete edge from node $u$ to node $v$. Denoted as $\rmedge{u, v}$. $$ \affnodes{\rmedge{u, v}} = \Set{v} $$
-\paragraph{Edge Reversal}
-Reverse edge from node $u$ to node $v$. Denoted as $\revedge{u, v}$. $$ \affnodes{\revedge{u, v}} = \Set{u, v} $$
+Usually the set of operations includes \textbf{edge addition}, \textbf{edge deletion} and \textbf{edge reversal}. 
+
+The advantage of using local operations in the structure search is that their (decomposable) scores can be computed efficiently, since they affect only a constant number of terms in the sum (\ref{eq:decomposable_score}). Edge affection and edge deletion affect 1 term and edge reversal affects 2 terms.
 
 \subsubsection{Speed concerns}
-The most expensive operation in the local search is the computation of $\score{X_i}$. Hence, we want to minimize the number of such computations.
-
-\subsection{Greedy Local Search}
-\subsubsection{Algorithm description}
-At each step of the algorithm, we choose the local operation with maximal score and apply it. The algorithm terminates where there are no operations that increase the score. That means that it has reached a local optimum (relative to the given score and local operations set).
-
-\subsubsection{Speed optimization}
-\paragraph{Finding maximum score} In order to find an operation with maximal score efficiently, we can use data structures such as a binary heap. That way, we can retrieve an operation with maximum score in $\bigO{1}$ time.
-
-However, when we apply the operation, several problems arise. Firstly, some operations in the heap start violating acyclity constraints. This problem can be solved by checking for acyclity when the operation is retrieved from the heap. 
-
-Secondly, the score of some operations changes. The number of such operations is $\bigO{K}$. Hence removing and re-inserting them to the heap would require $\bigO{K \log{N_{op}}}$ time. 
-
-\begin{algorithm}[t]
-	\caption{Greedy Local Search algorithm}\label{euclid}
-	\begin{algorithmic}[1]
-		\Procedure{GreedyLocalSearch}{$\graph{G}_0, \score{\cdot}, \ops{\cdot}$}
-		\State $\graph{G} \gets \graph{G}_0$
-		\While{$\exists o \in \ops{\graph{G}}: \score{o} > 0$}
-		\State $\displaystyle o \gets \argmax_{o \in \ops{\graph{G}}} {\score{o}}$
-		\State $\graph{G} \gets o(\graph{G})$
-		\EndWhile
-		\State \textbf{return} $\graph{G}$
-		\EndProcedure
-	\end{algorithmic}
-\end{algorithm}
+The most expensive operation in the local search is the computation of $\score{X_i}$, especially when the amount of data is large. Hence, we want to minimize the number of such computations.
 
 \subsection{Graph scores and mutual information}
 \paragraph{Mutual Information} Mutual information is defined as:
 \begin{equation}
-I(X; Y) = \int_{x \in X}{\int_{y \in Y}{p(x, y)\,\log \frac{p(x,y)}{p(x)\,p(y)}\,dx\,dy}}
+I(X; Y) = \sum_{x \in X}{\sum_{y \in Y}{p(x, y)\,\log \frac{p(x,y)}{p(x)\,p(y)}\,dx\,dy}}
 \end{equation}
 It can also be expressed as $KL$-divergence between distributions $p(x, y)$ and $p(x)p(y)$:
 \begin{equation}
@@ -194,9 +99,38 @@ I(X; Y) = H(X) + H(Y) - H(X, Y)
 \end{equation}
 Where $H(X)$ is Shannon entropy:
 \begin{equation}
-H(X) = \int_{x \in X}{p(x)\,\log p(x)\,dx}
+H(X) = \sum_{x \in X}{p(x)\,\log p(x)\,dx}
 \end{equation}
 We use Equation \ref{eq:mi_via_entropy} for computing mutual information because it allows us to cache $H(X)$ instead of $I(X; Y)$; since it can be used for computing several $I(X; Y)$, this scheme is more efficient.
+
+\subsection{Greedy Local Search}
+\subsubsection{Algorithm description}
+At each step of the algorithm, we choose the local operation with maximal score and apply it. The algorithm terminates where there are no operations that increase the score. That means that it has reached a local optimum (relative to the given score and local operations set).
+
+\subsubsection{Improvements}
+\paragraph{Storing operation scores in a heap} In order to find an operation with maximal score efficiently, we can use data structures such as a binary heap. That way, we can retrieve an operation with maximum score in $\bigO{1}$ time.
+
+However, when we apply the operation, several problems arise. Firstly, some operations in the heap start violating acyclity constraints. This problem can be solved by checking for acyclity when the operation is retrieved from the heap. 
+
+Secondly, the score of some operations changes. The number of such operations is $\bigO{K}$. Hence removing and re-inserting them to the heap would require $\bigO{K \log{N_{op}}}$ time. 
+
+\paragraph{Tabu search} In order to avoid local maximums and plateaus, a list of recently applied operations can be stored. Operations from that list are not considered during a step of the greedy search.
+
+\paragraph{Dataset perturbation} Another method for avoiding plateaus is to resample the dataset after a certain number of iterations.
+
+\begin{algorithm}[t]
+	\caption{Greedy Local Search algorithm}\label{euclid}
+	\begin{algorithmic}[1]
+		\Procedure{GreedyLocalSearch}{$\graph{G}_0, \score{\cdot}, \ops{\cdot}$}
+		\State $\graph{G} \gets \graph{G}_0$
+		\While{$\exists o \in \ops{\graph{G}}: \score{o} > 0$}
+		\State $\displaystyle o \gets \argmax_{o \in \ops{\graph{G}}} {\score{o}}$
+		\State $\graph{G} \gets o(\graph{G})$
+		\EndWhile
+		\State \textbf{return} $\graph{G}$
+		\EndProcedure
+	\end{algorithmic}
+\end{algorithm}
 
 \section{Fast score comparison}
 \subsection{CPD posterior}
@@ -232,7 +166,7 @@ p(p_1, p_2, \ldots, p_m|\mathcal{D}) = \frac{1}{Z_1}\,p(p_1, \ldots, p_m)\,p(\ma
 p(p_1, p_2, \ldots, p_m|\mathcal{D}) \sim \textrm{Dirichlet}(\alpha_1 + n_1, \alpha_2 + n_2, \ldots, \alpha_m + n_m)
 \end{equation*}
 
-\subsection{Dirichlet distribution}
+\subsection{Dirichlet distribution properties}
 
 \paragraph{Probability density function}
 \begin{equation}
@@ -337,7 +271,8 @@ p(p_i) = \frac{1}{B(\alpha_i, \alpha_0 - \alpha_i)} \, p_i^{\alpha_i} (1 - p_i)^
 		
 		\begin{multline*}
 		\mathbb{E}(x^{k_x} y^{k_y} \log^{m_x} x \log^{m_y} y) = 
-		\frac{1}{B(\alpha_x, \alpha_y)} \, \int\limits_0^1{p(x) x^{k_x} y^{k_y} \log^{m_x} x \log^{m_y} y dx} = \int\limits_0^1{x^{\alpha_x + k_x - 1} y^{\alpha_y + k_y - 1} \log^{m_x} x \log^{m_y} y \, dx} = 
+		\frac{1}{B(\alpha_x, \alpha_y)} \, \int\limits_0^1{p(x) x^{k_x} y^{k_y} \log^{m_x} x \log^{m_y} y dx} =
+		\\ \int\limits_0^1{x^{\alpha_x + k_x - 1} y^{\alpha_y + k_y - 1} \log^{m_x} x \log^{m_y} y \, dx} = 
 		\\ \frac{1}{B(\alpha_x, \alpha_y)} \, \int\limits_0^1{x^{\alpha_x + k_x - 1} (1 - x)^{\alpha_y + k_y - 1} \log^{m_x} x \log^{m_y} (1 - x) \, dx} = 
 		\\ \frac{1}{B(\alpha_x, \alpha_y)} \, \int\limits_0^1{ \frac{\partial^{m_x}}{(\partial \alpha_x)^{m_x}} \, (x^{\alpha_x + k_x - 1} (1 - x)^{\alpha_y + k_y - 1} \log^{m_y} (1 - x)) \, dx} = 
 		\\ \frac{1}{B(\alpha_x, \alpha_y)} \, \int\limits_0^1{ \frac{\partial^{m_x + m_y}}{(\partial \alpha_x)^{m_x} (\partial \alpha_y)^{m_y}} \, (x^{\alpha_x + k_x - 1} (1 - x)^{\alpha_y + k_y - 1}) \, dx} = 
@@ -459,8 +394,104 @@ Or by applying Theorem 1 or Theorem 2 otherwise: $x = p_{bc}, y = \sum_i{p_{ia}}
 
 The second term can also be computed using Theorem 1 or Theorem 2.
 
-\subsection{Application to the structure learning task}
-\paragraph{title}
+\subsection{Score difference}
+\paragraph{BIC score} A popular score function choice is the Bayesian Information Criterion (BIC) \cite{BICScore}:
+\begin{equation}
+\textrm{score}_{BIC}(\graph{G}) = \mathit{l}(\graph{G} | \mathcal{D}) - \frac{\log{N}}{2} \textrm{Dim}[\graph{G}] = N \sum_{i=1}^M MI(X_i, \textrm{Pa}(X_i)) + N \sum_{i=1}^M H(X_i) - \frac{\log{N}}{2} \textrm{Dim}[\graph{G}]
+\end{equation}
+
+The second term doesn't depend on the network structure, and the last doesn't depend on the data. Hence, we need to consider only the first term (which was done in the previous section).
+
+\paragraph{Edge addition and deletion} Consider addition of an edge from $X_j$ to $X_i$. 
+\begin{multline*}
+\mathbb{D}(\,\score{X_i; \textrm{Pa}(X_i) \cup \{X_j\}} - \score{X_i; \textrm{Pa}(X_i)}) = 
+\\ \mathbb{D}(H(X_i) + H(\textrm{Pa}(X_i), X_j) - H(X_i, \textrm{Pa}(X_i), X_j) - H(X_i) - H(\textrm{Pa}(X_i)) + H(X_i, \textrm{Pa}(X_i))) = 
+\\ \mathbb{D}(H(\textrm{Pa}(X_i), X_j) - H(X_i, \textrm{Pa}(X_i), X_j) - H(\textrm{Pa}(X_i)) + H(X_i, \textrm{Pa}(X_i)))
+\end{multline*}
+
+In order to this variance, we need to know:
+\begin{enumerate}
+	\item Variances of individual terms (computed in 2.4)
+	\item These covariances can be computed as in 2.5 (one set of variables in the entropy is a subset of another): 
+	\\ $cov(H(\textrm{Pa}(X_i), X_j), H(X_i, \textrm{Pa}(X_i), X_j))$, 
+	\\ $cov(H(\textrm{Pa}(X_i), X_j),  H(\textrm{Pa}(X_i)))$, 
+	\\ $cov(H(X_i, \textrm{Pa}(X_i), X_j), H(\textrm{Pa}(X_i)))$, 
+	\\ $cov(H(X_i, \textrm{Pa}(X_i), X_j), H(X_i, \textrm{Pa}(X_i)))$ 
+	\\ $cov(H(\textrm{Pa}(X_i)), H(X_i, \textrm{Pa}(X_i)))$
+	
+	\item $cov(H(\textrm{Pa}(X_i), X_j), H(\textrm{Pa}(X_i), X_i)$, which can't be computed that way.
+\end{enumerate}
+
+In order to get an upper bound on $cov(H(\textrm{Pa} (X_i), X_j), H(\textrm{Pa}(X_i), X_i)$, we can use the following statement (via Cauchy–Schwarz inequality):
+\begin{equation}
+|cov(X, Y)| \le \sqrt{\mathbb{D}X \, \mathbb{D}Y}
+\end{equation}
+
+\paragraph{Edge reversal} Edge reversal score variance upper bound can be derived in the same way. Also note that it can be represented as a combination of edge deletion and edge addition.
+
+\section{Improved Greedy Search}
+\subsection{Overview}
+We focus on the Greedy Local Search algorithm for the following reasons:
+\begin{itemize}
+	\item It is conceptually simple, but effective. In a large comparative study \cite{MinMaxHillClimbing} its (with certain improvements discussed in Section 1) performance was shown to be on par with other state-of-the-art algorithms.
+	\item It is sometimes used as a sub-procedure in more complex structure learning algorithms, such as Min-Max Hill Climbing.
+	\item It is very likely that it benefits the most from the proposed improvement. While other algorithms can, for example, employ constraint-based structure learning techniques, Greedy Local Search fully relies on score comparison queries.
+\end{itemize}
+
+Estimation of the variance of the operation scores difference allows to estimate \\ $P(\score{\textrm{op}_a} < \score{\textrm{op}_b} | \mathcal{D})$ using Chebyshev inequality.
+
+\subsection{Finding maximum score}
+\paragraph{The task} On each step of the Greedy Local Search algorithm, we need to find an operation with the largest score. It can be easily done by linear search in one pass. Now we want to improve the speed of such procedure, while 
+\begin{itemize}
+	\item getting the correct answer with probability $ \ge p_0 $.
+	\item retaining $\bigO{N_{op}}$ complexity of the algorithm.
+\end{itemize}
+\paragraph{The algorithm} The algorithm, which we call Stochastic Linear Search, proceeds as follows. As in the ordinary linear search, we consider operations one by one, while maintaining the current maximum. The only difference is that instead of directly comparison of scores computed on the entire dataset, $\textrm{CompareUntilSuccess}$ sub-procedure is used. It either returns the comparison result, or fails if there is not enough data to reliably compare scores.
+
+\begin{algorithm}[t]
+	\caption{Stochastic Linear Search}\label{euclid}
+	\begin{algorithmic}[1]
+		\Procedure{CompareUntilSuccess}{$\textrm{op}_1$, $\textrm{op}_2$, $p_0$, $N_{init}$, $N_{batch}$, $\mathcal{D}$}
+		\State $N_{cur} \gets N_{init}$
+		\While{$N_{cur} < N$}
+		\If{$P(\score{\textrm{op}_1} > \score{\textrm{op}_2} \, | \, \mathcal{D}[:N_{cur}]) > p_0$}
+			\Return $(\score{\textrm{op}_1} > \score{\textrm{op}_2})$
+		\Else \If{$P(\score{\textrm{op}_1} < \score{\textrm{op}_2} \, | \, \mathcal{D}[:N_{cur}]) > p_0$}
+		\Return $(\score{\textrm{op}_1} < \score{\textrm{op}_2})$
+		\EndIf
+		\EndIf
+		\State $N_{cur} \gets N_{cur} + N_{batch}$
+		\EndWhile 
+		
+		\Return error
+		\EndProcedure
+		\\
+		
+		\Procedure{StochasticLinearSearch}{$\textrm{op}_1$, $\textrm{op}_2$, $p_0$, $N_{init}$, $N_{batch}$, $\mathcal{D}$}
+		\State $\graph{G} \gets \graph{G}_0$
+		\While{$\exists o \in \ops{\graph{G}}: \score{o} > 0$}
+		\State $\displaystyle o \gets \argmax_{o \in \ops{\graph{G}}} {\score{o}}$
+		\State $\graph{G} \gets o(\graph{G})$
+		\EndWhile
+		\State \textbf{return} $\graph{G}$
+		\EndProcedure
+	\end{algorithmic}
+\end{algorithm}
+
+\subsection{Modified greedy search algorithm}
+The only change to the Greedy Local Search algorithm is that instead of simply finding an operation with maximal score the Stochastic Linear Search is used. 
+
+\paragraph{Error probability} As a consequence, on each step of the greedy search, there is (at most) $1 - p_0$ probability to make a suboptimal operation choice. We could try to get an upper bound on the probability of the error of the entire algorithm run, however, it would likely be overestimated. The Chebyshev inequality upper bound of $P(\score{\textrm{op}_a} < \score{\textrm{op}_b} | \mathcal{D})$ is also an overestimation: experiments show that the distribution over operation scores are rather close to normal. On the other hand, we usually don't need precise local greedy search run results per se; rather, we need as high resulting network score as possible, and the fact that it is indeed a local maximum w.r.t. chosen local operations. \textbf{Concluding, it makes sense to leave $p_0$ as an algorithm parameter that controls the accuracy-speed tradeoff}.
+
+\section{Conclusion}
+In this work, an optimization of Bayesian network score comparison was proposed, which allows to enhance speed of structure learning algorithms that rely on network score evaluations (i.e. score-based approach methods). It was done by deriving variance of the plug-in entropy and mutual information estimator (which may be a useful result in itself). The necessary modifications to the Greedy Local Search procedure were described. 
+
+\paragraph{Future work}
+\begin{itemize}
+	\item \textbf{Empirical comparison of the proposed algorithm to the existing ones}.
+	\item \textbf{Working with heap} One of the common speed optimizations of the Greedy Local Search is storing operations in a heap. In order to use it alongside the proposed method, a stochastic version of heap is required (like the stochastic version of linear search is used in the current version).
+	\item \textbf{Applying the technique to other score-based algorithms} While for some algorithms, like MMHC, it is as simple as plugging in the modified Greedy Search algorithm, others, like GES require further research. 
+	\end{itemize}
 
 \begin{thebibliography}{9}
 	
@@ -470,12 +501,47 @@ The second term can also be computed using Theorem 1 or Theorem 2.
 	The MIT Press, Cambridge, Massachusetts,
 	2009.
 	
-	\bibitem{Tsamardinos2006}
-	Ioannis Tsamardinos, Alexander Statnikov, Laura E. Brown, Constantin F. Aliferis
-	\emph{Generating realistic large bayesian networks by tiling},
-	2006.
+	\bibitem{LocalSearch}
+	David Heckerman, Dan Geiger, David M. Chickering
+	\emph{Learning Bayesian Networks: The Combination of Knowledge and Statistical Data}, 1995
 	
+	\bibitem{LocalSearchOrigin}
+	Edward Herskovits, Gregory Cooper
+	\emph{Kutato: An Entropy-Driven System for Construction of Probabilistic Expert Systems from Databases}
 	
+	\bibitem{MDLScore}
+	Lam and F. Bacchus
+	\emph{Learning Bayesian belief networks: An approach based on the MDL principle}
+	
+	\bibitem{BICScore}
+	Barron, Rissanen, Yu
+	\emph{The minimum description length principle in coding
+	and modeling}, 1998
+	
+	\bibitem{StructureLearningIsNPComplete}
+	David M. Chickering. 
+	\emph{Learning Bayesian networks is NP-complete}
+	
+	\bibitem{AsymptoticStructureLearningIsNPHard}
+	David M. Chickering, Christopher  Meek, David Heckerman.    \emph{Large-sample   learning   of
+	Bayesian networks is NP-hard}
+	
+	\bibitem{MeekConjecture}
+	David M. Chickering
+	\emph{Optimal Structure Identification With Greedy Search}, Journal of Machine Learning Research, 2002
+	
+	\bibitem{MinMaxHillClimbing}
+	Ioannis Tsamardinos, Laura E. Brown, Constantin F. Aliferis
+	\emph{The max-min hill-climbing Bayesian network
+	structure learning algorithm}, 2006
+	
+	\bibitem{GESLargeSampleOptimality}
+	David M. Chickering, Cristopher Meek
+	\emph{Finding Optimal Bayesian Networks}, UAI, 2002
+	
+	\bibitem{Review}
+	Timo J. T. Koski, John M. Noble
+	\emph{A Review of Bayesian Networks and Structure Learning}
 	
 \end{thebibliography}
 
