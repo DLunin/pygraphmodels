@@ -443,15 +443,15 @@ Estimation of the variance of the operation scores difference allows to estimate
 \subsection{Finding maximum score}
 \paragraph{The task} On each step of the Greedy Local Search algorithm, we need to find an operation with the largest score. It can be easily done by linear search in one pass. Now we want to improve the speed of such procedure, while 
 \begin{itemize}
-	\item getting the correct answer with probability $ \ge p_0 $.
+	\item getting the correct answer with probability $ \ge 1 - p_0 $.
 	\item retaining $\bigO{N_{op}}$ complexity of the algorithm.
 \end{itemize}
-\paragraph{The algorithm} The algorithm, which we call Stochastic Linear Search, proceeds as follows. As in the ordinary linear search, we consider operations one by one, while maintaining the current maximum. The only difference is that instead of directly comparison of scores computed on the entire dataset, $\textrm{CompareUntilSuccess}$ sub-procedure is used. It either returns the comparison result, or fails if there is not enough data to reliably compare scores.
+\paragraph{The algorithm} The algorithm, which we call Stochastic Linear Search, proceeds as follows. As in the ordinary linear search, we consider operations one by one, while maintaining the current maximum. The only difference is that instead of directly comparison of scores computed on the entire dataset, $\textrm{MaxUntilSuccess}$ sub-procedure is used. It either returns the comparison result, or fails if there is not enough data to reliably compare scores.
 
 \begin{algorithm}[t]
 	\caption{Stochastic Linear Search}\label{euclid}
 	\begin{algorithmic}[1]
-		\Procedure{CompareUntilSuccess}{$\textrm{op}_1$, $\textrm{op}_2$, $p_0$, $N_{init}$, $N_{batch}$, $\mathcal{D}$}
+		\Procedure{MaxUntilSuccess}{$\textrm{op}_1$, $\textrm{op}_2$, $p_0$, $N_{init}$, $N_{batch}$, $\mathcal{D}$}
 		\State $N_{cur} \gets N_{init}$
 		\While{$N_{cur} < N$}
 		\If{$P(\score{\textrm{op}_1} > \score{\textrm{op}_2} \, | \, \mathcal{D}[:N_{cur}]) > p_0$}
@@ -467,13 +467,17 @@ Estimation of the variance of the operation scores difference allows to estimate
 		\EndProcedure
 		\\
 		
-		\Procedure{StochasticLinearSearch}{$\textrm{op}_1$, $\textrm{op}_2$, $p_0$, $N_{init}$, $N_{batch}$, $\mathcal{D}$}
-		\State $\graph{G} \gets \graph{G}_0$
-		\While{$\exists o \in \ops{\graph{G}}: \score{o} > 0$}
-		\State $\displaystyle o \gets \argmax_{o \in \ops{\graph{G}}} {\score{o}}$
-		\State $\graph{G} \gets o(\graph{G})$
-		\EndWhile
-		\State \textbf{return} $\graph{G}$
+		\Procedure{StochasticLinearSearch}{$\textrm{ops}$, $p_0$, $N_{init}$, $N_{batch}$, $\mathcal{D}$}
+		\State $m \gets \textrm{None}$
+		\For{$x \in \textrm{ops}$}
+		\State $m \gets MaxUntilSuccess(\frac{p_0}{n}, m, x, N_{init}, N_{batch}, \mathcal{D}) $
+		\If{$m = \textrm{error}$} 
+			\Return error
+		\EndIf
+		
+		\EndFor
+		
+		\Return $m$
 		\EndProcedure
 	\end{algorithmic}
 \end{algorithm}
@@ -481,7 +485,7 @@ Estimation of the variance of the operation scores difference allows to estimate
 \subsection{Modified greedy search algorithm}
 The only change to the Greedy Local Search algorithm is that instead of simply finding an operation with maximal score the Stochastic Linear Search is used. 
 
-\paragraph{Error probability} As a consequence, on each step of the greedy search, there is (at most) $1 - p_0$ probability to make a suboptimal operation choice. We could try to get an upper bound on the probability of the error of the entire algorithm run, however, it would likely be overestimated. The Chebyshev inequality upper bound of $P(\score{\textrm{op}_a} < \score{\textrm{op}_b} | \mathcal{D})$ is also an overestimation: experiments show that the distribution over operation scores are rather close to normal. On the other hand, we usually don't need precise local greedy search run results per se; rather, we need as high resulting network score as possible, and the fact that it is indeed a local maximum w.r.t. chosen local operations. \textbf{Concluding, it makes sense to leave $p_0$ as an algorithm parameter that controls the accuracy-speed tradeoff}.
+\paragraph{Error probability} As a consequence, on each step of the greedy search, there is (at most) $p_0$ probability to make a suboptimal operation choice. We could try to get an upper bound on the probability of the error of the entire algorithm run, however, it would likely be overestimated. The Chebyshev inequality upper bound of $P(\score{\textrm{op}_a} < \score{\textrm{op}_b} | \mathcal{D})$ is also an overestimation: experiments show that the distribution over operation scores are rather close to normal. On the other hand, we usually don't need precise local greedy search run results per se; rather, we need as high resulting network score as possible, and the fact that it is indeed a local maximum w.r.t. chosen local operations. \textbf{Concluding, it makes sense to leave $p_0$ as an algorithm parameter that controls the accuracy-speed tradeoff}.
 
 \section{Conclusion}
 In this work, an optimization of Bayesian network score comparison was proposed, which allows to enhance speed of structure learning algorithms that rely on network score evaluations (i.e. score-based approach methods). It was done by deriving variance of the plug-in entropy and mutual information estimator (which may be a useful result in itself). The necessary modifications to the Greedy Local Search procedure were described. 
